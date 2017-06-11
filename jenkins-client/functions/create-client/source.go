@@ -1,16 +1,15 @@
 import (
-  "github.com/danopia/stardust/star-router/base"
   gojenkins "github.com/andreaskoch/golang-jenkins"
 )
 
-func CreateClient(ctx base.Context, input *CreateClientInput) (output *Client) {
+func CreateClientImpl(input *CreateClientInput) (output *Client) {
   auth := &gojenkins.Auth{
-    Username: CreateClientInput.Username,
-    ApiToken: CreateClientInput.ApiToken,
+    Username: input.Username,
+    ApiToken: input.APIToken,
   }
-  jenkins := gojenkins.NewJenkins(auth, CreateClientInput.BaseUrl)
+  jenkins := gojenkins.NewJenkins(auth, input.BaseURL)
 
   return &Client{
-    svc: client,
+    svc: jenkins,
   }
 }

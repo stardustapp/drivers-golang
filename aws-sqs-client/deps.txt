@@ -1,0 +1,4 @@
+golang sqs "github.com/aws/aws-sdk-go/service/sqs"
+golang session "github.com/aws/aws-sdk-go/aws/session"
+golang credentials "github.com/aws/aws-sdk-go/aws/credentials"
+golang aws "github.com/aws/aws-sdk-go/aws"

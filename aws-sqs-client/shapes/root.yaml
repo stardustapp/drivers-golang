@@ -1,0 +1,7 @@
+type: "Folder"
+
+props:
+- name: "init"
+  type: "Function"
+  target: "init"
+

@@ -1,0 +1,16 @@
+type: "Folder"
+
+props:
+- name: "id"
+  type: "String"
+
+- name: "lan-ip-address"
+  type: "String"
+
+- name: "mac-address"
+  type: "String"
+
+- name: "pair"
+  type: "Function"
+  target: "pair-bridge"
+

@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "app-name"
+  type: "String"
+
+- name: "device-type"
+  type: "String"
+

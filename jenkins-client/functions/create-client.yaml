@@ -1,0 +1,2 @@
+input-shape: "create-client-input"
+output-shape: "client"

@@ -1,0 +1,6 @@
+type: "Folder"
+
+native-props:
+- name: "session"
+  type: "*session.Session"
+

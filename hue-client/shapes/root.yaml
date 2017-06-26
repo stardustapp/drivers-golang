@@ -1,0 +1,7 @@
+type: "Folder"
+
+props:
+- name: "discover"
+  type: "Function"
+  target: "run-discovery"
+

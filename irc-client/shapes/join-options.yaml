@@ -1,0 +1,10 @@
+type: "Folder"
+
+props:
+- name: "channel"
+  type: "String"
+
+- name: "password"
+  type: "String"
+  optional: true
+

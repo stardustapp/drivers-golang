@@ -1,0 +1,7 @@
+type: "Folder"
+
+props:
+- name: "open"
+  type: "Function"
+  target: "open-connection"
+

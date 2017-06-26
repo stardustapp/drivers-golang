@@ -1,0 +1,17 @@
+type: "Folder"
+
+props:
+- name: "options"
+  type: "connection-options"
+
+- name: "join-channel"
+  type: "Function"
+  target: "join-channel"
+
+native-props:
+- name: "svc"
+  type: "*ircevent.Connection"
+
+- name: "receivedWelcome"
+  type: "bool"
+

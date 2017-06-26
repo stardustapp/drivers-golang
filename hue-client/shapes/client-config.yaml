@@ -1,0 +1,18 @@
+type: "Folder"
+
+props:
+- name: "app-name"
+  type: "String"
+
+- name: "device-type"
+  type: "undefined"
+
+- name: "lan-ip-address"
+  type: "String"
+
+- name: "mac-address"
+  type: "String"
+
+- name: "username"
+  type: "undefined"
+

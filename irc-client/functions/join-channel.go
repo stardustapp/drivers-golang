@@ -1,4 +1,3 @@
-func (c *Connection) JoinChannelImpl(opts *JoinOptions) string {
-  c.svc.Join(opts.Channel + " :" + opts.Password)
-  return "joined!"
+func (c *Channel) JoinChannelImpl(opts *JoinOptions) {
+  c.Connection.svc.Join(c.ChanName + " :" + opts.Password)
 }

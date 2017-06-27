@@ -4,14 +4,11 @@ props:
 - name: "options"
   type: "connection-options"
 
-- name: "join-channel"
+- name: "get-channel"
   type: "Function"
-  target: "join-channel"
+  target: "get-channel"
 
 native-props:
 - name: "svc"
   type: "*ircevent.Connection"
-
-- name: "receivedWelcome"
-  type: "bool"
 

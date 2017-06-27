@@ -1,0 +1,17 @@
+type: "Folder"
+
+props:
+- name: "join"
+  type: "Function"
+  target: "join-channel"
+
+- name: "connection"
+  type: "connection"
+
+- name: "chan-name"
+  type: "String"
+
+- name: "send-message"
+  type: "Function"
+  target: "send-message"
+

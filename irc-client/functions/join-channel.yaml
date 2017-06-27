@@ -1,3 +1,2 @@
-context-shape: "connection"
+context-shape: "channel"
 input-shape: "join-options"
-output-shape: "String"

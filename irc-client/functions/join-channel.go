@@ -1,3 +1,6 @@
-func (c *Channel) JoinChannelImpl(opts *JoinOptions) {
-  c.Connection.svc.Join(c.ChanName + " :" + opts.Password)
+func (c *Channel) JoinChannelImpl() {
+  c.Connection.svc.Join(c.ChanName)
+
+  c.scrollback = append(c.scrollback,
+                        "Channel joined")
 }

@@ -1,20 +1,44 @@
 import ircevent "github.com/thoj/go-ircevent"
 import "log"
+import "fmt"
 
-func OpenConnectionImpl(opts *ConnectionOptions) *Connection {
-  log.Println("connecting")
+func (r *Root) OpenConnectionImpl(opts *ConnectionOptions) *Connection {
+  token := fmt.Sprintf("%s.%s.%s.%s.%s", opts.Hostname, opts.Port, opts.Nickname, opts.Username)
+  if r.conns == nil {
+    r.conns = make(map[string]*Connection)
+  }
+  if conn, ok := r.conns[token]; ok {
+    return conn
+  }
+
+  log.Println("connecting to", opts.Hostname, "as", opts.Nickname)
 
   ircobj := ircevent.IRC(opts.Nickname, opts.Username)
   ircobj.Debug = true
   ircobj.VerboseCallbackHandler = true
 
-  ircobj.AddCallback("001", func(e *ircevent.Event) {
-    //ircobj.Join("##stardust")
-  })
-
   ircobj.UseTLS = false
   ircobj.Password = opts.Password
   err := ircobj.Connect(opts.Hostname + ":" + opts.Port)
+
+  conn := &Connection{
+    Options: opts,
+    svc: ircobj,
+    channels: make(map[string]*Channel),
+  }
+
+  ircobj.AddCallback("001", func(e *ircevent.Event) {
+    for c, _ := range conn.channels {
+      ircobj.Join(c)
+    }
+    conn.IsConnected = "yes"
+  })
+  ircobj.AddCallback("PRIVMSG", func(e *ircevent.Event) {
+    if channel, ok := conn.channels[e.Arguments[0]]; ok {
+      msg := "<" + e.Nick + "> " + e.Message()
+      channel.scrollback = append(channel.scrollback, msg)
+    }
+  })
 
   if err != nil {
     log.Println("Err", err)
@@ -22,10 +46,8 @@ func OpenConnectionImpl(opts *ConnectionOptions) *Connection {
   }
   go ircobj.Loop()
 
-  return &Connection{
-    Options: opts,
-    svc: ircobj,
-  }
+  r.conns[token] = conn
+  return conn
 }
 
   /*

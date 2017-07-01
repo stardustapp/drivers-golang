@@ -5,3 +5,7 @@ props:
   type: "Function"
   target: "open-connection"
 
+native-props:
+- name: "conns"
+  type: "map[string]*Connection"
+

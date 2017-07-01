@@ -15,3 +15,11 @@ props:
   type: "Function"
   target: "send-message"
 
+- name: "get-messages"
+  type: "Function"
+  target: "get-messages"
+
+native-props:
+- name: "scrollback"
+  type: "[]string"
+

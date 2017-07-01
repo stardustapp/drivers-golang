@@ -8,7 +8,14 @@ props:
   type: "Function"
   target: "get-channel"
 
+- name: "is-connected"
+  type: "String"
+  optional: true
+
 native-props:
 - name: "svc"
   type: "*ircevent.Connection"
+
+- name: "channels"
+  type: "map[string]*Channel"
 

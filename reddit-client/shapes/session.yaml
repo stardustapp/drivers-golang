@@ -1,0 +1,15 @@
+type: "Folder"
+
+props:
+- name: "default-frontpage"
+  type: "Function"
+  target: "get-default-frontpage"
+
+- name: "subreddit-submissions"
+  type: "Function"
+  target: "get-subreddit-submissions"
+
+native-props:
+- name: "svc"
+  type: "*geddit.Session"
+

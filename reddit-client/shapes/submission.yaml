@@ -1,0 +1,69 @@
+type: "Folder"
+
+props:
+- name: "author"
+  type: "String"
+
+- name: "title"
+  type: "String"
+
+- name: "url"
+  type: "String"
+
+- name: "domain"
+  type: "String"
+
+- name: "subreddit"
+  type: "String"
+
+- name: "subreddit-id"
+  type: "String"
+
+- name: "full-id"
+  type: "String"
+
+- name: "id"
+  type: "String"
+
+- name: "permalink"
+  type: "String"
+
+- name: "selftext"
+  type: "String"
+
+- name: "thumbnail-url"
+  type: "String"
+
+- name: "date-created"
+  type: "String"
+
+- name: "num-comments"
+  type: "String"
+
+- name: "score"
+  type: "String"
+
+- name: "ups"
+  type: "String"
+
+- name: "downs"
+  type: "String"
+
+- name: "is-nsfw"
+  type: "String"
+
+- name: "is-self"
+  type: "String"
+
+- name: "was-clicked"
+  type: "String"
+
+- name: "is-saved"
+  type: "String"
+
+- name: "banned-by"
+  type: "String"
+
+- name: "full-permalink"
+  type: "String"
+

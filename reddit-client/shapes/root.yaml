@@ -1,0 +1,7 @@
+type: "Folder"
+
+props:
+- name: "anonymous-session"
+  type: "Function"
+  target: "get-anonymous-session"
+

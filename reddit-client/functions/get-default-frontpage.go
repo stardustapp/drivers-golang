@@ -1,11 +1,14 @@
 import "github.com/jzelinskie/geddit"
+import "github.com/stardustapp/core/inmem"
 import "strconv"
+import "time"
+import "log"
 
 // Get reddit's default frontpage
-func (s *Session) GetDefaultFrontpageImpl() *Submission {
+func (s *Session) GetDefaultFrontpageImpl() *inmem.Channel {
   // Set listing options
   subOpts := geddit.ListingOptions{
-    Limit: 1,
+    Limit: 10,
   }
 
   submissions, err := s.svc.DefaultFrontpage(geddit.DefaultPopularity, subOpts)
@@ -13,8 +16,9 @@ func (s *Session) GetDefaultFrontpageImpl() *Submission {
     panic("Error getting default frontpage: " + err.Error())
   }
 
-  if len(submissions) > 0 {
-    s := submissions[0]
+  channel := inmem.NewBufferedChannel("submissions", len(submissions))
+  log.Println("Generating", len(submissions), "submissions")
+  for _, s := range submissions {
 
     bannedBy := ""
     if s.BannedBy != nil {
@@ -24,8 +28,10 @@ func (s *Session) GetDefaultFrontpageImpl() *Submission {
       true: "yes",
       false: "no",
     }
+    dateCreated := time.Unix(int64(s.DateCreated), 0)
+    dateCreatedStr, _ := dateCreated.MarshalText()
 
-    return &Submission{
+    channel.Push(&Submission{
       Author: s.Author,
       Title: s.Title,
       URL: s.URL,
@@ -38,7 +44,7 @@ func (s *Session) GetDefaultFrontpageImpl() *Submission {
       Selftext: s.Selftext,
       ThumbnailURL: s.ThumbnailURL,
 
-      DateCreated: strconv.FormatFloat(s.DateCreated, 'E', -1, 64),
+      DateCreated: string(dateCreatedStr),
 
       NumComments: strconv.Itoa(s.NumComments),
       Score: strconv.Itoa(s.Score),
@@ -51,7 +57,7 @@ func (s *Session) GetDefaultFrontpageImpl() *Submission {
       IsSaved: bools[s.IsSaved],
 
       BannedBy: bannedBy,
-    }
+    })
   }
-  return nil
+  return channel
 }

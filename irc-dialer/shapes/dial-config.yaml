@@ -1,0 +1,28 @@
+type: "Folder"
+
+props:
+- name: "hostname"
+  type: "String"
+
+- name: "port"
+  type: "String"
+
+- name: "nickname"
+  type: "String"
+
+- name: "password"
+  type: "String"
+  optional: true
+
+- name: "username"
+  type: "String"
+  optional: true
+
+- name: "channels"
+  type: "String"
+  optional: true
+
+- name: "full-name"
+  type: "String"
+  optional: true
+

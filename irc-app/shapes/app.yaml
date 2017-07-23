@@ -1,0 +1,13 @@
+type: "Folder"
+
+props:
+- name: "n"
+  type: "Folder"
+  target: "network"
+
+- name: "options"
+  type: "app-opts"
+
+- name: "state"
+  type: "String"
+

@@ -1,0 +1,12 @@
+type: "Folder"
+
+props:
+- name: "servers"
+  type: "Folder"
+
+- name: "state"
+  type: "Folder"
+
+- name: "dialer"
+  type: "Folder"
+

@@ -1,0 +1,6 @@
+type: "Folder"
+
+props:
+- name: "type"
+  type: "String"
+

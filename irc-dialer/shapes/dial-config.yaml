@@ -18,11 +18,11 @@ props:
   type: "String"
   optional: true
 
-- name: "channels"
+- name: "full-name"
   type: "String"
   optional: true
 
-- name: "full-name"
+- name: "identd"
   type: "String"
   optional: true
 

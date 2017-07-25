@@ -1,0 +1,21 @@
+type: "Folder"
+
+props:
+- name: "prefix-name"
+  type: "String"
+  optional: true
+
+- name: "prefix-user"
+  type: "String"
+  optional: true
+
+- name: "prefix-host"
+  type: "String"
+  optional: true
+
+- name: "command"
+  type: "String"
+
+- name: "params"
+  type: "String"
+

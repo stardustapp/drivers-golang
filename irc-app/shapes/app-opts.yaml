@@ -2,11 +2,14 @@ type: "Folder"
 
 props:
 - name: "servers"
-  type: "Folder"
+  type: "String"
 
 - name: "state"
-  type: "Folder"
+  type: "String"
 
 - name: "dialer"
-  type: "Folder"
+  type: "String"
+
+- name: "chart-uri"
+  type: "String"
 

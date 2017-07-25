@@ -1,17 +1,30 @@
 type: "Folder"
 
 props:
-- name: "channels"
-  type: "Folder"
-  target: "channel"
-
 - name: "config"
   type: "dial-config"
 
 - name: "state"
   type: "String"
 
+- name: "send"
+  type: "Function"
+  target: "send-message"
+
+- name: "history"
+  type: "Folder"
+  target: "message"
+
+- name: "history-horizon"
+  type: "String"
+
+- name: "history-latest"
+  type: "String"
+
 native-props:
 - name: "svc"
   type: "*irc.Client"
+
+- name: "out"
+  type: "chan *Message"
 

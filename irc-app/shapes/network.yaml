@@ -1,2 +1,13 @@
 type: "Folder"
 
+props:
+- name: "state"
+  type: "String"
+
+- name: "n"
+  type: "Folder"
+  target: "context"
+
+- name: "wire"
+  type: "Folder"
+

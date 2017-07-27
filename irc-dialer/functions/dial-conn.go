@@ -2,6 +2,7 @@ import (
   "log"
   "fmt"
   "net"
+  "time"
   "os"
   "strings"
   "strconv"
@@ -19,6 +20,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   firstMsg := &Message{
     Command: "LOG",
     Params: "Dialing " + endpoint + " over TCP...",
+    Source: "dialer",
+    Timestamp: time.Now().UTC().Format(time.RFC3339),
   }
 
   // Create the connection holder
@@ -40,6 +43,15 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     nextSeq := strconv.Itoa(i + 1)
     conn.History.Put(nextSeq, msg)
     conn.HistoryLatest = nextSeq
+
+    // Trim old messages
+    horizon, _ := strconv.Atoi(conn.HistoryHorizon)
+    maxOld := i - 100
+    for horizon < maxOld {
+      conn.History.Put(strconv.Itoa(horizon), nil)
+      horizon++
+      conn.HistoryHorizon = strconv.Itoa(horizon)
+    }
   }
 
   // Configure IRC library as needed
@@ -54,6 +66,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       msg := &Message{
         Command: m.Command,
         Params: strings.Join(m.Params, "|"),
+        Source: "remote",
+        Timestamp: time.Now().UTC().Format(time.RFC3339),
       }
       if m.Prefix != nil {
         msg.PrefixName = m.Prefix.Name
@@ -95,6 +109,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   addMsg(&Message{
     Command: "LOG",
     Params: "Connection established.",
+    Source: "dialer",
+    Timestamp: time.Now().UTC().Format(time.RFC3339),
   })
   conn.State = "Ready"
 
@@ -123,6 +139,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   go func() {
     for msg := range conn.out {
       msg.PrefixName = conn.svc.CurrentNick()
+      msg.Source = "client"
+      msg.Timestamp = time.Now().UTC().Format(time.RFC3339)
       addMsg(msg)
 
       conn.svc.WriteMessage(&irc.Message{

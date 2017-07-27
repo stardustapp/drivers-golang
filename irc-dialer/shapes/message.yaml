@@ -19,3 +19,9 @@ props:
 - name: "params"
   type: "String"
 
+- name: "source"
+  type: "String"
+
+- name: "timestamp"
+  type: "String"
+

@@ -11,3 +11,10 @@ props:
 - name: "wire"
   type: "Folder"
 
+native-props:
+- name: "stateDir"
+  type: "base.Folder"
+
+- name: "configDir"
+  type: "base.Folder"
+

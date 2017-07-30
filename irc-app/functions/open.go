@@ -58,6 +58,9 @@ func OpenImpl(opts *AppOpts) *App {
 
       network := &Network{
         State: "Pending",
+        N: inmem.NewFolder("contexts"),
+        stateDir: stateDir,
+        configDir: servEnt.(base.Folder),
       }
       app.N.Put(name, network)
 
@@ -66,8 +69,10 @@ func OpenImpl(opts *AppOpts) *App {
         if wire := openWire(wireStr.Get()); wire != nil {
           network.State = "Resuming existing connection"
           network.Wire = wire
-          go network.runWire(stateDir, servFold)
+          go network.runWire()
           continue
+        } else {
+          log.Println("Failed to resume wire", wireStr.Get())
         }
       }
 
@@ -95,7 +100,7 @@ func OpenImpl(opts *AppOpts) *App {
       if wire := openWire(sessUri); wire != nil {
         network.State = "Dialed @ " + sessUri
         network.Wire = wire
-        go network.runWire(stateDir, servFold)
+        go network.runWire()
         continue
       }
 
@@ -108,40 +113,89 @@ func OpenImpl(opts *AppOpts) *App {
   return app
 }
 
-func (n *Network) runWire(stateDir base.Folder, configDir base.Folder) {
-  checkpoint := -1
-  serverLogNext := 0
+// find or create context w/ log
+func (n *Network) getContext(id string, ctxType string, label string) *Context {
 
-  // Restore checkpoint from stored state
-  if checkpointEnt, ok := stateDir.Fetch("wire-checkpoint"); ok {
-    checkpoint, _ = strconv.Atoi(checkpointEnt.(base.String).Get())
+  // use cache if possible
+  if ent, ok := n.N.Fetch(id); ok {
+    return ent.(*Context)
   }
-  log.Println("Resuming after checkpoint", checkpoint)
+
+  ctx := &Context{
+    Type: ctxType,
+    Label: label,
+  }
 
   // Upsert server log folder
-  var serverLog base.Folder
-  if serverLogEnt, ok := stateDir.Fetch("server-log"); ok { // TODO
-    serverLog = serverLogEnt.(base.Folder)
+  logKey := "logs-" + id
+
+  if logRootEnt, ok := n.stateDir.Fetch(logKey); ok { // TODO
+    ctx.Log = logRootEnt.(base.Folder)
   } else {
-    log.Println("Creating server-log state directory")
-    if ok := stateDir.Put("server-log", inmem.NewFolder("server-log")); !ok {
-      n.State = "Failed: Couldn't create server log"
-      return
+    log.Println("Creating server-log root state directory")
+    if ok := n.stateDir.Put(logKey, inmem.NewFolder(logKey)); !ok {
+      n.State = "Failed: Couldn't create log " + logKey
+      return nil
     }
-    if serverLogEnt, ok = stateDir.Fetch("server-log"); ok { // TODO
-      serverLog = serverLogEnt.(base.Folder)
-      serverLog.Put("horizon", inmem.NewString("id", "0"))
-      serverLog.Put("latest", inmem.NewString("id", "0"))
+    if logRootEnt, ok = n.stateDir.Fetch(logKey); ok {
+      ctx.Log = logRootEnt.(base.Folder)
+      ctx.Log.Put("horizon", inmem.NewString("id", ""))
+      ctx.Log.Put("latest", inmem.NewString("id", ""))
     } else {
-      n.State = "Failed: Couldn't get new server log"
-      return
+      n.State = "Failed: Couldn't get new log " + logKey
+      return nil
     }
   }
 
-  // Restore server-log next ID from stored state
-  if serverLogNextEnt, ok := serverLog.Fetch("latest"); ok {
-    serverLogNext, _ = strconv.Atoi(serverLogNextEnt.(base.String).Get())
-    serverLogNext++
+  n.N.Put(id, ctx)
+  log.Println("Assembled context", id)
+  return ctx
+}
+
+func (c *Context) writeLog(when time.Time, msg string) {
+  partition := when.UTC().Format("2006-01-02")
+  timestamp := when.UTC().Format(time.RFC3339)
+
+  if c.CurrentLog == nil || c.CurrentLog.Name() != partition {
+    // Upsert this day's server log folder
+    if logEnt, ok := c.Log.Fetch(partition); ok { // TODO
+      c.CurrentLog = logEnt.(base.Folder)
+    } else {
+      log.Println("Creating", c.Label, "day state directory for", partition)
+      if ok := c.Log.Put(partition, inmem.NewFolder(partition)); !ok {
+        log.Println("Failed: Couldn't create log " + partition)
+        return
+      }
+      if logEnt, ok = c.Log.Fetch(partition); ok { // TODO
+        c.CurrentLog = logEnt.(base.Folder)
+        c.CurrentLog.Put("horizon", inmem.NewString("id", "0"))
+        c.CurrentLog.Put("latest", inmem.NewString("id", "-1"))
+        c.Log.Put("latest", inmem.NewString("id", partition))
+      } else {
+        log.Println("Failed: Couldn't get new log " + partition)
+        return
+      }
+    }
+  }
+
+  // Fetch next ID from stored state
+  logNext := 0
+  if logNextEnt, ok := c.CurrentLog.Fetch("latest"); ok {
+    logNext, _ = strconv.Atoi(logNextEnt.(base.String).Get())
+    logNext++
+  }
+
+  c.CurrentLog.Put(strconv.Itoa(logNext), inmem.NewString("log", timestamp + "|" + msg))
+  c.CurrentLog.Put("latest", inmem.NewString("id", strconv.Itoa(logNext)))
+  log.Println("Wrote message", logNext, "into", c.CurrentLog.Name(), "for", c.Label)
+}
+
+func (n *Network) runWire() {
+  checkpoint := -1
+
+  // Restore checkpoint from stored state
+  if checkpointEnt, ok := n.stateDir.Fetch("wire-checkpoint"); ok {
+    checkpoint, _ = strconv.Atoi(checkpointEnt.(base.String).Get())
   }
   log.Println("Resuming after checkpoint", checkpoint)
 
@@ -160,13 +214,16 @@ func (n *Network) runWire(stateDir base.Folder, configDir base.Folder) {
     ))
   }
 
+  serverCtx := n.getContext("server", "Server", "Server")
+
   for {
     // Check that we're still connected
     wireStateEnt, _ := n.Wire.Fetch("state")
     wireState := wireStateEnt.(base.String).Get()
     if wireState != "Pending" && wireState != "Ready" {
+      serverCtx.writeLog(time.Now(), "Disconnected from server: " + wireState)
       n.State = "Failed: Wire was state " + wireState
-      stateDir.Put("wire-uri", nil)
+      n.stateDir.Put("wire-uri", nil)
       break
     }
 
@@ -188,8 +245,10 @@ func (n *Network) runWire(stateDir base.Folder, configDir base.Folder) {
       sourceStr, _ := msgFold.Fetch("source")
       timestampStr, _ := msgFold.Fetch("timestamp")
 
-      msg := fmt.Sprintf("%v|Received %v - %v - %v - %v - %v - %v",
-                         timestampStr.(base.String).Get(),
+      timestamp, _ := time.Parse(time.RFC3339, timestampStr.(base.String).Get())
+      params := strings.Split(paramsStr.(base.String).Get(), "|")
+
+      msg := fmt.Sprintf("Received unhandled.. %v - %v - %v - %v - %v - %v",
                          sourceStr.(base.String).Get(),
                          commandStr.(base.String).Get(),
                          prefixNameStr.(base.String).Get(),
@@ -197,22 +256,35 @@ func (n *Network) runWire(stateDir base.Folder, configDir base.Folder) {
                          prefixHostStr.(base.String).Get(),
                          paramsStr.(base.String).Get())
 
-      // TODO: DO THINGS
-      serverLog.Put(strconv.Itoa(serverLogNext), inmem.NewString("log", msg))
-      serverLog.Put("latest", inmem.NewString("id", strconv.Itoa(serverLogNext)))
-      serverLogNext++
+      serverCtx.writeLog(timestamp, msg)
 
       switch commandStr.(base.String).Get() {
       case "001":
-        channelEnt, _ := configDir.Fetch("channels")
+        channelEnt, _ := n.configDir.Fetch("channels")
         channelList := strings.Split(channelEnt.(base.String).Get(), ",")
         for _, channel := range channelList {
           sendMsg("JOIN", channel)
         }
 
+      case "JOIN":
+        ctx := n.getContext("chan-" + params[0], "Channel", params[0])
+        ctx.writeLog(timestamp, "User joined: " + prefixNameStr.(base.String).Get())
+
+      case "PART":
+        ctx := n.getContext("chan-" + params[0], "Channel", params[0])
+        ctx.writeLog(timestamp, "User left: " + prefixNameStr.(base.String).Get())
+
+      case "PRIVMSG":
+        ctx := n.getContext("chan-" + params[0], "Channel", params[0])
+        ctx.writeLog(timestamp, "<" + prefixNameStr.(base.String).Get() + "> " + params[1])
+
+      case "PING":
+
+      default:
+        serverCtx.writeLog(timestamp, msg)
       }
 
-      stateDir.Put("wire-checkpoint", inmem.NewString("", strconv.Itoa(checkpoint)))
+      n.stateDir.Put("wire-checkpoint", inmem.NewString("", strconv.Itoa(checkpoint)))
     }
 
     // Sleep a sec

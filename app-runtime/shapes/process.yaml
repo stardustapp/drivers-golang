@@ -10,9 +10,12 @@ props:
 - name: "process-id"
   type: "String"
 
-- name: "started-time"
+- name: "status"
   type: "String"
 
-- name: "status"
+- name: "start-time"
+  type: "String"
+
+- name: "end-time"
   type: "String"
 

@@ -15,7 +15,13 @@ props:
   type: "Folder"
   target: "process"
 
+- name: "namespace"
+  type: "Folder"
+
 native-props:
 - name: "nextPid"
   type: "int"
+
+- name: "ctx"
+  type: "base.Context"
 

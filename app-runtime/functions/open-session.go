@@ -20,11 +20,50 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
 
     if appFolder, ok := session.ctx.GetFolder("/apps"); ok {
       for _, appName := range appFolder.Children() {
+
+        // Build a namespace for the app
+        rootDir := inmem.NewFolderOf(appName,
+                                     inmem.NewFolder("state"),
+                                     inmem.NewFolder("export"))
+        appNs := base.NewNamespace("skylink://skychart.local/~"+appName, rootDir)
+
+        if fold, ok := session.ctx.GetFolder("/apps/"+appName); ok {
+          rootDir.Put("source", fold)
+        }
+
+        if fold, ok := session.ctx.GetFolder("/config/"+appName); ok {
+          rootDir.Put("config", fold)
+        } else {
+          log.Println("Creating /config folder for", appName)
+          session.ctx.Put("/config/"+appName, fold)
+          if fold, ok := session.ctx.GetFolder("/config/"+appName); ok {
+            rootDir.Put("config", fold)
+          } else {
+            log.Println("WARN: couldn't create /config/"+appName)
+          }
+        }
+
+        if fold, ok := session.ctx.GetFolder("/state/"+appName); ok {
+          rootDir.Put("persist", fold)
+        } else {
+          log.Println("Creating /persist folder for", appName)
+          session.ctx.Put("/state/"+appName, fold)
+          if fold, ok := session.ctx.GetFolder("/state/"+appName); ok {
+            rootDir.Put("persist", fold)
+          } else {
+            log.Println("WARN: couldn't create /state/"+appName)
+          }
+        }
+
+
         log.Println("Adding app", appName)
         app := &App{
           AppName: appName,
           Session: session,
           Processes: inmem.NewFolder("processes"),
+
+          Namespace: rootDir,
+          ctx: base.NewRootContext(appNs),
         }
         apps.Put(appName, app)
 

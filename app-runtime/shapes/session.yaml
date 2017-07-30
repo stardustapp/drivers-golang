@@ -1,0 +1,11 @@
+type: "Folder"
+
+props:
+- name: "apps"
+  type: "Folder"
+  target: "app"
+
+native-props:
+- name: "ctx"
+  type: "base.Context"
+

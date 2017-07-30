@@ -1,0 +1,18 @@
+type: "Folder"
+
+props:
+- name: "app"
+  type: "app"
+
+- name: "routine-name"
+  type: "String"
+
+- name: "process-id"
+  type: "String"
+
+- name: "started-time"
+  type: "String"
+
+- name: "status"
+  type: "String"
+

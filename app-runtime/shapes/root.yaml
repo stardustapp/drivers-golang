@@ -1,0 +1,11 @@
+type: "Folder"
+
+props:
+- name: "open"
+  type: "Function"
+  target: "open-session"
+
+- name: "sessions"
+  type: "Folder"
+  target: "session"
+

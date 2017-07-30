@@ -1,0 +1,21 @@
+type: "Folder"
+
+props:
+- name: "session"
+  type: "session"
+
+- name: "app-name"
+  type: "String"
+
+- name: "start-routine"
+  type: "Function"
+  target: "start-routine"
+
+- name: "processes"
+  type: "Folder"
+  target: "process"
+
+native-props:
+- name: "nextPid"
+  type: "int"
+

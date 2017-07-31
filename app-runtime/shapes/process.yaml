@@ -4,9 +4,6 @@ props:
 - name: "app"
   type: "app"
 
-- name: "routine-name"
-  type: "String"
-
 - name: "process-id"
   type: "String"
 
@@ -18,4 +15,7 @@ props:
 
 - name: "end-time"
   type: "String"
+
+- name: "params"
+  type: "process-params"
 

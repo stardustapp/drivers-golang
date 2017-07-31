@@ -1,0 +1,14 @@
+type: "Folder"
+
+props:
+- name: "routine-name"
+  type: "String"
+
+- name: "input"
+  type: "Folder"
+  optional: true
+
+- name: "parent-id"
+  type: "String"
+  optional: true
+

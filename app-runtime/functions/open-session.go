@@ -26,16 +26,19 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
                                      inmem.NewFolder("state"),
                                      inmem.NewFolder("export"))
         appNs := base.NewNamespace("skylink://skychart.local/~"+appName, rootDir)
+        rootDir.Put("session", skylink)
 
+        // link in source code
         if fold, ok := session.ctx.GetFolder("/apps/"+appName); ok {
           rootDir.Put("source", fold)
         }
 
+        // locate read-only config dir
         if fold, ok := session.ctx.GetFolder("/config/"+appName); ok {
           rootDir.Put("config", fold)
         } else {
           log.Println("Creating /config folder for", appName)
-          session.ctx.Put("/config/"+appName, fold)
+          session.ctx.Put("/config/"+appName, inmem.NewFolder(appName))
           if fold, ok := session.ctx.GetFolder("/config/"+appName); ok {
             rootDir.Put("config", fold)
           } else {
@@ -43,19 +46,20 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
           }
         }
 
-        if fold, ok := session.ctx.GetFolder("/state/"+appName); ok {
+        // locate read-write data dir
+        if fold, ok := session.ctx.GetFolder("/persist/"+appName); ok {
           rootDir.Put("persist", fold)
         } else {
           log.Println("Creating /persist folder for", appName)
-          session.ctx.Put("/state/"+appName, fold)
-          if fold, ok := session.ctx.GetFolder("/state/"+appName); ok {
+          session.ctx.Put("/persist/"+appName, inmem.NewFolder(appName))
+          if fold, ok := session.ctx.GetFolder("/persist/"+appName); ok {
             rootDir.Put("persist", fold)
           } else {
-            log.Println("WARN: couldn't create /state/"+appName)
+            log.Println("WARN: couldn't create /persist/"+appName)
           }
         }
 
-
+        // register the app in the runtime
         log.Println("Adding app", appName)
         app := &App{
           AppName: appName,
@@ -67,8 +71,10 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
         }
         apps.Put(appName, app)
 
-        // launch every app
-        app.StartRoutineImpl("launch")
+        // launch every app at boot
+        app.StartRoutineImpl(&ProcessParams{
+          RoutineName: "launch",
+        })
       }
     }
   }()
@@ -77,25 +83,25 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
   return session
 }
 
-/*
-func openWire(wireURI string) base.Folder {
+// Skylink helpers
+// TODO: move to skylink package or something
+
+func openWire(wireURI string) (base.Folder, bool) {
   uri, err := url.Parse(wireURI)
   if err != nil {
     log.Println("Skylink Wire URI parsing failed.", wireURI, err)
-    return nil
+    return nil, false
   }
 
   skylink := openSkylink(uri.Scheme + "://" + uri.Host)
   if skylink == nil {
-    return nil
+    return nil, false
   }
   skyNs := base.NewNamespace("tmp:/", skylink)
   skyCtx := base.NewRootContext(skyNs)
 
-  subPath, _ := skyCtx.GetFolder(uri.Path)
-  return subPath
+  return skyCtx.GetFolder(uri.Path)
 }
-*/
 
 func openSkylink(linkURI string) base.Entry {
   uri, err := url.Parse(linkURI)

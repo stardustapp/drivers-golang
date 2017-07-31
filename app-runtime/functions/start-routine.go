@@ -422,7 +422,7 @@ func (p *Process) launch() {
       l.NewTable()
       for idx, part := range strings.Split(str, knife) {
         l.PushString(part)
-        l.SetField(1, strconv.Itoa(idx + 1))
+        l.RawSetInt(1, idx + 1)
       }
       return 1
     }},

@@ -30,6 +30,105 @@ func (a *App) StartRoutineImpl(params *ProcessParams) *Process {
   return p
 }
 
+func readLuaEntry(l *lua.State, index int) base.Entry {
+  switch l.TypeOf(index) {
+
+  case lua.TypeNil:
+    return nil
+
+  case lua.TypeString:
+    str := lua.CheckString(l, index)
+    return inmem.NewString("string", str)
+
+  case lua.TypeNumber:
+    str := fmt.Sprintf("%v", lua.CheckNumber(l, index))
+    return inmem.NewString("number", str)
+
+  case lua.TypeBoolean:
+    if l.ToBoolean(index) {
+      return inmem.NewString("boolean", "yes")
+    } else {
+      return inmem.NewString("boolean", "no")
+    }
+
+  case lua.TypeUserData:
+    // base.Context values are passed back by-ref
+    // TODO: can have a bunch of other interesting userdatas
+    userCtx := lua.CheckUserData(l, index, "stardust/base.Context")
+    ctx := userCtx.(base.Context)
+    log.Println("Lua passed native star-context", ctx.Name())
+    entry, _ := ctx.Get(".")
+    return entry
+
+  case lua.TypeTable:
+    // Tables become folders
+    log.Println("luat idx before", l.Top(), index)
+    l.PushValue(index)
+    folder := inmem.NewFolder("input")
+    l.PushNil() // Add nil entry on stack (need 2 free slots).
+    for l.Next(-2) {
+      key, _ := l.ToString(-2)
+      log.Println("converting key", key)
+      val := readLuaEntry(l, -1)
+      l.Pop(1) // Remove val, but need key for the next iter.
+      folder.Put(key, val)
+    }
+    l.Pop(1)
+    log.Println("luat idx after", l.Top())
+    return folder
+
+  default:
+    lua.Errorf(l, "Stardust received unmanagable thing of type %s", l.TypeOf(index).String())
+    panic("unreachable")
+  }
+}
+
+func pushLuaTable(l *lua.State, folder base.Folder) {
+  l.NewTable()
+  for _, key := range folder.Children() {
+    child, _ := folder.Fetch(key)
+    switch child := child.(type) {
+    case base.String:
+      l.PushString(child.Get())
+    case base.Folder:
+      pushLuaTable(l, child)
+    default:
+      lua.Errorf(l, "Directory entry %s in %s wasn't a recognizable type", key, folder.Name())
+      panic("unreachable")
+    }
+    l.SetField(-2, key)
+  }
+}
+
+// Reads all the lua arguments and resolves a context for them
+func resolveLuaPath(l *lua.State, parentCtx base.Context) (ctx base.Context, path string) {
+  // Discover the context at play
+  if userCtx := lua.TestUserData(l, 1, "stardust/base.Context"); userCtx != nil {
+    ctx = userCtx.(base.Context)
+    l.Remove(1)
+  } else {
+    ctx = parentCtx
+  }
+
+  // Read in the path strings
+  n := l.Top()
+  paths := make([]string, n)
+  for i := range paths {
+    paths[i] = lua.CheckString(l, i+1)
+  }
+  l.SetTop(0)
+
+  // Create a path
+  path = "/"
+  if n > 0 {
+    path += strings.Join(paths, "/")
+  } else {
+    path = ""
+  }
+  return
+}
+
+
 func (p *Process) launch() {
   log.Println("Starting routine", p)
 
@@ -66,86 +165,6 @@ func (p *Process) launch() {
   }
 
 
-  // Reads all the lua arguments and resolves a context for them
-  resolveLuaPath := func (l *lua.State) (ctx base.Context, path string) {
-    // Discover the context at play
-    if userCtx := lua.TestUserData(l, 1, "stardust/base.Context"); userCtx != nil {
-      ctx = userCtx.(base.Context)
-      l.Remove(1)
-    } else {
-      ctx = p.App.ctx
-    }
-
-    // Read in the path strings
-    n := l.Top()
-    paths := make([]string, n)
-    for i := range paths {
-      paths[i] = lua.CheckString(l, i+1)
-    }
-    l.SetTop(0)
-
-    // Create a path
-    path = "/"
-    if n > 0 {
-      path += strings.Join(paths, "/")
-    } else {
-      path = ""
-    }
-    return
-  }
-
-  readLuaEntry := func (l *lua.State, index int) base.Entry {
-    switch l.TypeOf(index) {
-
-    case lua.TypeNil:
-      return nil
-
-    case lua.TypeString:
-      str := lua.CheckString(l, index)
-      return inmem.NewString("string", str)
-
-    case lua.TypeNumber:
-      str := fmt.Sprintf("%v", lua.CheckNumber(l, index))
-      return inmem.NewString("number", str)
-
-    case lua.TypeBoolean:
-      if l.ToBoolean(index) {
-        return inmem.NewString("boolean", "yes")
-      } else {
-        return inmem.NewString("boolean", "no")
-      }
-
-    case lua.TypeUserData:
-      // base.Context values are passed back by-ref
-      // TODO: can have a bunch of other interesting userdatas
-      userCtx := lua.CheckUserData(l, index, "stardust/base.Context")
-      ctx := userCtx.(base.Context)
-      log.Println("Lua passed native star-context", ctx.Name())
-      entry, _ := ctx.Get(".")
-      return entry
-
-    case lua.TypeTable:
-      // Tables become folders
-      l.PushValue(index)
-      folder := inmem.NewFolder("input")
-      l.PushNil() // Add nil entry on stack (need 2 free slots).
-      for l.Next(-2) {
-        // TODO: support non-string values (complex folders)
-        key := lua.CheckString(l, -2)
-        val := lua.CheckString(l, -1)
-        l.Pop(1) // Remove val, but need key for the next iter.
-        folder.Put(key, inmem.NewString(key, val))
-      }
-      l.Pop(1)
-      return folder
-
-    default:
-      lua.Errorf(l, "Stardust received unmanagable thing of type %s", l.TypeOf(index).String())
-      panic("unreachable")
-    }
-  }
-
-
   _ = lua.NewMetaTable(l, "stardustContextMetaTable")
   lua.SetFunctions(l, []lua.RegistryFunction{
 
@@ -173,7 +192,7 @@ func (p *Process) launch() {
     // ctx.mkdirp([pathRoot,] pathParts string...) Context
     // TODO: add readonly 'chroot' variant, returns 'nil' if not exist
     {"mkdirp", func(l *lua.State) int {
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua mkdirp to", path, "from", ctx.Name())
 
       if ok := toolbox.Mkdirp(ctx, path); !ok {
@@ -224,7 +243,7 @@ func (p *Process) launch() {
 
     // ctx.read([pathRoot,] pathParts string...) (val string)
     {"read", func(l *lua.State) int {
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua read from", path, "from", ctx.Name())
 
       if str, ok := ctx.GetString(path); ok {
@@ -239,23 +258,13 @@ func (p *Process) launch() {
     // ctx.readDir([pathRoot,] pathParts string...) (val table)
     // TODO: reimplement as an enumeration
     {"readDir", func(l *lua.State) int {
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua readdir on", path, "from", ctx.Name())
 
-      l.NewTable()
       if folder, ok := ctx.GetFolder(path); ok {
-        for _, key := range folder.Children() {
-          child, _ := folder.Fetch(key)
-          switch child := child.(type) {
-          case base.String:
-            l.PushString(child.Get())
-          default:
-            lua.Errorf(l, "Directory entry %s in %s wasn't a recognizable type", key, path)
-            panic("unreachable")
-          }
-          l.SetField(-2, key)
-        }
+        pushLuaTable(l, folder)
       } else {
+        l.NewTable()
         log.Println("lua readdir() failed to find folder at path", path)
       }
       return 1
@@ -265,17 +274,18 @@ func (p *Process) launch() {
     {"store", func(l *lua.State) int {
       // get the thing to store off the end
       entry := readLuaEntry(l, -1)
+      l.Pop(1)
+      // read all remaining args as a path
+      ctx, path := resolveLuaPath(l, p.App.ctx)
+
+      // make sure we're not unlinking
       if entry == nil {
         lua.Errorf(l, "store() can't store nils, use ctx.unlink()")
         panic("unreachable")
       }
-      l.Pop(1)
-
-      // read all remaining args as a path
-      ctx, path := resolveLuaPath(l)
-      log.Println("Lua store to", path, "from", ctx.Name(), "of", entry)
 
       // do the thing
+      log.Println("Lua store to", path, "from", ctx.Name(), "of", entry)
       l.PushBoolean(ctx.Put(path, entry))
       return 1
     }},
@@ -287,7 +297,7 @@ func (p *Process) launch() {
       l.Pop(1)
 
       // read all remaining args as a path
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       p.Status = "Blocked: Invoking " + ctx.Name() + path + " since " + time.Now().Format(time.RFC3339Nano)
       log.Println("Lua invoke of", path, "from", ctx.Name(), "with input", input)
 
@@ -321,7 +331,7 @@ func (p *Process) launch() {
 
     // ctx.unlink([pathRoot,] pathParts string...) (ok bool)
     {"unlink", func(l *lua.State) int {
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua unlike of", path, "from", ctx.Name())
 
       // do the thing
@@ -332,7 +342,7 @@ func (p *Process) launch() {
     // ctx.enumerate([pathRoot,] pathParts string...) []Entry
     // Entry tables have: name, path, type, stringValue
     {"enumerate", func(l *lua.State) int {
-      ctx, path := resolveLuaPath(l)
+      ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua enumeration on", path, "from", ctx.Name())
 
       startEntry, ok := ctx.Get(path)
@@ -400,6 +410,20 @@ func (p *Process) launch() {
     // ctx.sleep(milliseconds int)
     {"timestamp", func(l *lua.State) int {
       l.PushString(time.Now().UTC().Format(time.RFC3339))
+      return 1
+    }},
+
+    // ctx.splitString(fulldata string, knife string) []string
+    {"splitString", func(l *lua.State) int {
+      str := lua.CheckString(l, 1)
+      knife := lua.CheckString(l, 2)
+      l.SetTop(0)
+
+      l.NewTable()
+      for idx, part := range strings.Split(str, knife) {
+        l.PushString(part)
+        l.SetField(1, strconv.Itoa(idx + 1))
+      }
       return 1
     }},
 

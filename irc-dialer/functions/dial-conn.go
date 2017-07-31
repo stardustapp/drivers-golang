@@ -7,11 +7,20 @@ import (
   "strings"
   "strconv"
 
+  "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/inmem"
   "github.com/stardustapp/core/extras"
 
   irc "gopkg.in/irc.v1"
 )
+
+func buildArrayFolder(in ...string) base.Folder {
+  folder := inmem.NewFolder("array")
+  for idx, str := range in {
+    folder.Put(strconv.Itoa(idx+1), inmem.NewString("", str))
+  }
+  return folder
+}
 
 // Returns an absolute Skylink URI to the established connection
 func (r *Root) DialConnImpl(config *DialConfig) string {
@@ -19,9 +28,9 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 
   firstMsg := &Message{
     Command: "LOG",
-    Params: "Dialing " + endpoint + " over TCP...",
+    Params: buildArrayFolder("Dialing " + endpoint + " over TCP..."),
     Source: "dialer",
-    Timestamp: time.Now().UTC().Format(time.RFC3339),
+    Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
   }
 
   // Create the connection holder
@@ -61,13 +70,12 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     User: config.Username,
     Name: config.FullName,
     Handler: irc.HandlerFunc(func(c *irc.Client, m *irc.Message) {
-
       // Add inbound messages to the history
       msg := &Message{
         Command: m.Command,
-        Params: strings.Join(m.Params, "|"),
+        Params: buildArrayFolder(m.Params...),
         Source: "remote",
-        Timestamp: time.Now().UTC().Format(time.RFC3339),
+        Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
       }
       if m.Prefix != nil {
         msg.PrefixName = m.Prefix.Name
@@ -75,26 +83,6 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         msg.PrefixHost = m.Prefix.Host
       }
       addMsg(msg)
-
-      /*if m.Command == "001" {
-        // 001 is a welcome event, so we join channels there
-        conn.State = "Ready"
-        for _, name := range strings.Split(config.Channels, ",") {
-          c.WriteMessage(&irc.Message{
-            Command: "JOIN",
-            Params: []string{name},
-          })
-        }
-      } else if m.Command == "PRIVMSG" && m.FromChannel() {
-        // Create a handler on all messages.
-        c.WriteMessage(&irc.Message{
-          Command: "PRIVMSG",
-          Params: []string{
-            m.Params[0],
-            m.Trailing(),
-          },
-        })
-      }*/
     }),
   }
 
@@ -108,9 +96,9 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 
   addMsg(&Message{
     Command: "LOG",
-    Params: "Connection established.",
+    Params: buildArrayFolder("Connection established."),
     Source: "dialer",
-    Timestamp: time.Now().UTC().Format(time.RFC3339),
+    Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
   })
   conn.State = "Ready"
 
@@ -140,12 +128,24 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     for msg := range conn.out {
       msg.PrefixName = conn.svc.CurrentNick()
       msg.Source = "client"
-      msg.Timestamp = time.Now().UTC().Format(time.RFC3339)
+      msg.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
       addMsg(msg)
+
+      // pull native params out of param folder
+      var params []string
+      if msg.Params != nil {
+        params = make([]string, len(msg.Params.Children()))
+        for _, name := range msg.Params.Children() {
+          id, _ := strconv.Atoi(name)
+          if ent, ok := msg.Params.Fetch(name); ok {
+            params[id-1] = ent.(base.String).Get()
+          }
+        }
+      }
 
       conn.svc.WriteMessage(&irc.Message{
         Command: msg.Command,
-        Params: strings.Split(msg.Params, "|"),
+        Params: params,
       })
     }
   }()

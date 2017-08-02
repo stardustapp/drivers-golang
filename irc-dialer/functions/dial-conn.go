@@ -137,7 +137,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         params = make([]string, len(msg.Params.Children()))
         for _, name := range msg.Params.Children() {
           id, _ := strconv.Atoi(name)
-          if ent, ok := msg.Params.Fetch(name); ok {
+          if ent, ok := msg.Params.Fetch(name); ok && id > 0 && id <= len(params) {
             params[id-1] = ent.(base.String).Get()
           }
         }

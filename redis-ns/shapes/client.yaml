@@ -1,0 +1,13 @@
+type: "Folder"
+
+props:
+- name: "root"
+  type: "Folder"
+
+native-props:
+- name: "svc"
+  type: "*redis.Client"
+
+- name: "prefix"
+  type: "string"
+

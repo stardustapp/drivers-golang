@@ -1,0 +1,14 @@
+type: "Folder"
+
+props:
+- name: "address"
+  type: "String"
+
+- name: "password"
+  type: "String"
+  optional: true
+
+- name: "prefix"
+  type: "String"
+  optional: true
+

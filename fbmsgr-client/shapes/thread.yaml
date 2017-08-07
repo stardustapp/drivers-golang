@@ -1,0 +1,36 @@
+type: "Folder"
+
+props:
+- name: "thread-name"
+  type: "String"
+
+- name: "fb-id"
+  type: "String"
+
+- name: "other-user-id"
+  type: "String"
+
+- name: "participant-ids"
+  type: "String"
+
+- name: "snippet"
+  type: "String"
+
+- name: "snippet-sender-id"
+  type: "String"
+
+- name: "unread-count"
+  type: "String"
+
+- name: "message-count"
+  type: "String"
+
+- name: "timestamp"
+  type: "String"
+
+- name: "server-timestamp"
+  type: "String"
+
+- name: "thread-id"
+  type: "String"
+

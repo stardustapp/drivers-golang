@@ -1,0 +1,27 @@
+type: "Folder"
+
+props:
+- name: "id"
+  type: "String"
+
+- name: "fb-id"
+  type: "String"
+
+- name: "gender"
+  type: "String"
+
+- name: "href"
+  type: "String"
+
+- name: "image-src"
+  type: "String"
+
+- name: "big-image-src"
+  type: "String"
+
+- name: "short-name"
+  type: "String"
+
+- name: "participant-name"
+  type: "String"
+

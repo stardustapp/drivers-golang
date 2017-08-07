@@ -1,0 +1,25 @@
+type: "Folder"
+
+props:
+- name: "state"
+  type: "String"
+
+- name: "username"
+  type: "String"
+
+- name: "threads"
+  type: "Folder"
+  target: "thread"
+
+- name: "participants"
+  type: "Folder"
+  target: "participant"
+
+- name: "update-threads"
+  type: "Function"
+  target: "list-threads"
+
+native-props:
+- name: "svc"
+  type: "*fbmsgr.Session"
+

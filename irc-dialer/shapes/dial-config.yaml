@@ -22,7 +22,7 @@ props:
   type: "String"
   optional: true
 
-- name: "identd"
+- name: "ident"
   type: "String"
   optional: true
 

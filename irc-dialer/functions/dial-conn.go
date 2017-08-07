@@ -103,10 +103,10 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   conn.State = "Ready"
 
   // Record username info in identd server
-  if config.Identd == "" {
-    config.Identd = "dialer"
+  if config.Ident == "" {
+    config.Ident = "dialer"
   }
-  identdRPC("add " + config.Identd + " " +
+  identdRPC("add " + config.Ident + " " +
             strings.Split(netConn.LocalAddr().String(),":")[1] + " " +
             strings.Split(netConn.RemoteAddr().String(),":")[1])
 

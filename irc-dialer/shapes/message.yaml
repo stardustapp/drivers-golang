@@ -25,3 +25,6 @@ props:
 - name: "timestamp"
   type: "String"
 
+- name: "tags"
+  type: "Folder"
+

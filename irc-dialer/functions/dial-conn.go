@@ -74,13 +74,19 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       msg := &Message{
         Command: m.Command,
         Params: buildArrayFolder(m.Params...),
-        Source: "remote",
+        Source: "server",
         Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+        Tags: inmem.NewFolder("tags"),
       }
       if m.Prefix != nil {
         msg.PrefixName = m.Prefix.Name
         msg.PrefixUser = m.Prefix.User
         msg.PrefixHost = m.Prefix.Host
+      }
+      for key, _ := range m.Tags {
+        if val, ok := m.GetTag(key); ok {
+          msg.Tags.Put(key, inmem.NewString(key, val))
+        }
       }
       addMsg(msg)
     }),
@@ -143,9 +149,21 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         }
       }
 
+      // pull native tags out too
+      var tags map[string]irc.TagValue
+      if msg.Tags != nil {
+        tags = make(map[string]irc.TagValue, len(msg.Tags.Children()))
+        for _, name := range msg.Tags.Children() {
+          if ent, ok := msg.Tags.Fetch(name); ok {
+            tags[name] = irc.TagValue(ent.(base.String).Get())
+          }
+        }
+      }
+
       conn.svc.WriteMessage(&irc.Message{
         Command: msg.Command,
         Params: params,
+        Tags: tags,
       })
     }
   }()

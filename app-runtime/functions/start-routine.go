@@ -2,6 +2,7 @@ import (
   "time"
   "log"
   "fmt"
+  "reflect"
   "strconv"
   "strings"
 
@@ -88,12 +89,14 @@ func pushLuaTable(l *lua.State, folder base.Folder) {
   for _, key := range folder.Children() {
     child, _ := folder.Fetch(key)
     switch child := child.(type) {
+    case nil:
+      l.PushNil()
     case base.String:
       l.PushString(child.Get())
     case base.Folder:
       pushLuaTable(l, child)
     default:
-      lua.Errorf(l, "Directory entry %s in %s wasn't a recognizable type", key, folder.Name())
+      lua.Errorf(l, "Directory entry %s in %s wasn't a recognizable type %s", key, folder.Name(), reflect.TypeOf(child))
       panic("unreachable")
     }
     l.SetField(-2, key)
@@ -144,26 +147,15 @@ func (p *Process) launch() {
   l := lua.NewState()
   lua.OpenLibraries(l)
 
+  // Type marker for native base.Context objects
   _ = lua.NewMetaTable(l, "stardust/base.Context")
   l.Pop(1)
 
-  // If we have input, make up a table and expose it
+  // If we have input, make up a table and expose it as global
   if p.Params.Input != nil {
-    l.NewTable()
-    for _, key := range p.Params.Input.Children() {
-      child, _ := p.Params.Input.Fetch(key)
-      switch child := child.(type) {
-      case base.String:
-        l.PushString(child.Get())
-      default:
-        p.Status = "Failed: input entry " + key + " wasn't a recognizable type"
-        return
-      }
-      l.SetField(-2, key)
-    }
+    pushLuaTable(l, p.Params.Input)
     l.SetGlobal("input")
   }
-
 
   _ = lua.NewMetaTable(l, "stardustContextMetaTable")
   lua.SetFunctions(l, []lua.RegistryFunction{

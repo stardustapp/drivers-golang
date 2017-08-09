@@ -5,11 +5,18 @@ import "github.com/stardustapp/core/base"
 import "github.com/stardustapp/core/inmem"
 import "github.com/stardustapp/core/skylink"
 
+var sessionCache map[string]*Session = make(map[string]*Session)
+
 func (r *Root) OpenSessionImpl(chartUrl string) *Session {
+  if session, ok := sessionCache[chartUrl]; ok {
+    return session
+  }
+
   apps := inmem.NewFolder("apps")
   session := &Session{
     Apps: apps,
   }
+  sessionCache[chartUrl] = session
 
   // perform async so the open can complete eagerly
   go func() {

@@ -19,3 +19,7 @@ props:
 - name: "params"
   type: "process-params"
 
+- name: "abort-time"
+  type: "String"
+  optional: true
+

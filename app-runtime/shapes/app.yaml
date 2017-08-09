@@ -18,6 +18,13 @@ props:
 - name: "namespace"
   type: "Folder"
 
+- name: "restart"
+  type: "Function"
+  target: "restart-app"
+
+- name: "status"
+  type: "String"
+
 native-props:
 - name: "nextPid"
   type: "int"

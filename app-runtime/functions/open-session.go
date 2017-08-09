@@ -27,18 +27,19 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
 
     if appFolder, ok := session.ctx.GetFolder("/apps"); ok {
       for _, appName := range appFolder.Children() {
+        appFold, ok := session.ctx.GetFolder("/apps/"+appName)
+        if !ok {
+          // not an app
+          continue
+        }
 
         // Build a namespace for the app
         rootDir := inmem.NewFolderOf(appName,
                                      inmem.NewFolder("state"),
                                      inmem.NewFolder("export"))
         appNs := base.NewNamespace("skylink://skychart.local/~"+appName, rootDir)
-        rootDir.Put("session", skylink)
-
-        // link in source code
-        if fold, ok := session.ctx.GetFolder("/apps/"+appName); ok {
-          rootDir.Put("source", fold)
-        }
+        rootDir.Put("session", skylink) // the user's chart, i suppose
+        rootDir.Put("source", appFold) // source code
 
         // locate read-only config dir
         if fold, ok := session.ctx.GetFolder("/config/"+appName); ok {
@@ -72,6 +73,7 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
           AppName: appName,
           Session: session,
           Processes: inmem.NewFolder("processes"),
+          Status: "Ready", // TODO: not really, wait for the launch process?
 
           Namespace: rootDir,
           ctx: base.NewRootContext(appNs),

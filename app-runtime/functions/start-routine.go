@@ -15,6 +15,14 @@ import (
 )
 
 func (a *App) StartRoutineImpl(params *ProcessParams) *Process {
+  // Don't create more processes when something is shutting down
+  // TODO: maybe allow a cleanup process to clear some persisted state
+  if a.Status != "Ready" && a.Status != "Pending" {
+    log.Println("Refusing to start process", params,
+                "as app", a.AppName, "is currently", a.Status)
+    return nil
+  }
+
   pid := a.nextPid
   a.nextPid++
 
@@ -157,11 +165,20 @@ func (p *Process) launch() {
     l.SetGlobal("input")
   }
 
+  checkProcessHealth := func(l *lua.State) {
+    if p.AbortTime != "" {
+      log.Println("Process", p.ProcessID, "received abort signal")
+      p.Status = "Aborted"
+      lua.Errorf(l, "Stardust process received abort signal at %s", p.AbortTime)
+    }
+  }
+
   _ = lua.NewMetaTable(l, "stardustContextMetaTable")
   lua.SetFunctions(l, []lua.RegistryFunction{
 
     // ctx.startRoutine(name[, inputTable])
     {"startRoutine", func(l *lua.State) int {
+      checkProcessHealth(l)
 
       //k, v := lua.CheckString(l, 2), l.ToValue(3)
       //steps = append(steps, step{name: k, function: v})
@@ -184,6 +201,8 @@ func (p *Process) launch() {
     // ctx.mkdirp([pathRoot,] pathParts string...) Context
     // TODO: add readonly 'chroot' variant, returns 'nil' if not exist
     {"mkdirp", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua mkdirp to", path, "from", ctx.Name())
 
@@ -208,10 +227,13 @@ func (p *Process) launch() {
 
     // ctx.import(wireUri) Context
     {"import", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       wireUri := lua.CheckString(l, 1)
       log.Println("Lua opening wire", wireUri)
       p.Status = "Waiting: Dialing " + wireUri
 
+      // TODO: support abort interruptions
       if wire, ok := openWire(wireUri); ok {
         log.Println("Lua successfully opened wire", wireUri)
 
@@ -229,12 +251,15 @@ func (p *Process) launch() {
         l.PushNil()
       }
 
+      checkProcessHealth(l)
       p.Status = "Running"
       return 1
     }},
 
     // ctx.read([pathRoot,] pathParts string...) (val string)
     {"read", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua read from", path, "from", ctx.Name())
 
@@ -250,6 +275,8 @@ func (p *Process) launch() {
     // ctx.readDir([pathRoot,] pathParts string...) (val table)
     // TODO: reimplement as an enumeration
     {"readDir", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua readdir on", path, "from", ctx.Name())
 
@@ -264,6 +291,8 @@ func (p *Process) launch() {
 
     // ctx.store([pathRoot,] pathParts string..., thingToStore any) (ok bool)
     {"store", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       // get the thing to store off the end
       entry := readLuaEntry(l, -1)
       l.Pop(1)
@@ -284,6 +313,8 @@ func (p *Process) launch() {
 
     // ctx.invoke([pathRoot,] pathParts string..., input any) (output any)
     {"invoke", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       // get the thing to store off the end, can be nil
       input := readLuaEntry(l, -1)
       l.Pop(1)
@@ -300,6 +331,7 @@ func (p *Process) launch() {
       }
 
       output := ivk.Invoke(p.App.ctx, input)
+      checkProcessHealth(l)
 
       // try returning useful results
       switch output := output.(type) {
@@ -323,6 +355,8 @@ func (p *Process) launch() {
 
     // ctx.unlink([pathRoot,] pathParts string...) (ok bool)
     {"unlink", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua unlike of", path, "from", ctx.Name())
 
@@ -334,6 +368,8 @@ func (p *Process) launch() {
     // ctx.enumerate([pathRoot,] pathParts string...) []Entry
     // Entry tables have: name, path, type, stringValue
     {"enumerate", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua enumeration on", path, "from", ctx.Name())
 
@@ -372,6 +408,8 @@ func (p *Process) launch() {
 
     // ctx.log(messageParts string...)
     {"log", func(l *lua.State) int {
+      checkProcessHealth(l)
+
       n := l.Top()
       parts := make([]string, n)
       for i := range parts {
@@ -392,9 +430,14 @@ func (p *Process) launch() {
 
     // ctx.sleep(milliseconds int)
     {"sleep", func(l *lua.State) int {
+      checkProcessHealth(l)
+      // TODO: support interupting to abort
+
       ms := lua.CheckInteger(l, 1)
       p.Status = "Sleeping: Since " + time.Now().Format(time.RFC3339Nano)
       time.Sleep(time.Duration(ms) * time.Millisecond)
+
+      checkProcessHealth(l)
       p.Status = "Running"
       return 0
     }},
@@ -424,7 +467,7 @@ func (p *Process) launch() {
 
   p.Status = "Running"
   if err := lua.DoString(l, sourceText); err != nil {
-    p.Status = "Failed: " + err.Error()
+    p.Status = "Terminated: " + err.Error()
   } else {
     p.Status = "Completed"
   }

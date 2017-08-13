@@ -442,7 +442,7 @@ func (p *Process) launch() {
       return 0
     }},
 
-    // ctx.sleep(milliseconds int)
+    // ctx.timestamp() string
     {"timestamp", func(l *lua.State) int {
       l.PushString(time.Now().UTC().Format(time.RFC3339))
       return 1

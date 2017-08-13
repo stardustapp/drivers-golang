@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "icon"
+  type: "String"
+
+- name: "svc-name"
+  type: "String"
+

@@ -1,0 +1,26 @@
+type: "Folder"
+
+props:
+- name: "send-message"
+  type: "Function"
+  target: "send-message"
+
+- name: "created-at"
+  type: "String"
+
+- name: "icon"
+  type: "String"
+
+- name: "public"
+  type: "String"
+
+- name: "secret"
+  type: "String"
+
+- name: "get-qr-url"
+  type: "Function"
+  target: "get-qr-url"
+
+- name: "svc-name"
+  type: "String"
+

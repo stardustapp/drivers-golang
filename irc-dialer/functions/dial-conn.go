@@ -123,9 +123,15 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   go func() {
     if err := conn.svc.Run(); err != nil {
       log.Println("Failed to run client:", err)
-      conn.State = "Failed: " + err.Error()
+      conn.State = "Closed: " + err.Error()
+    } else {
+      // pretty sure this'll never hit
+      conn.State = "Closed"
     }
 
+    // synchronize to prevent send-message from panicing
+    conn.sendMutex.Lock()
+    defer conn.sendMutex.Unlock()
     close(conn.out)
   }()
 
@@ -160,11 +166,15 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         }
       }
 
-      conn.svc.WriteMessage(&irc.Message{
+      err := conn.svc.WriteMessage(&irc.Message{
         Command: msg.Command,
         Params: params,
         Tags: tags,
       })
+      if err != nil {
+        // TODO: do something about these errors
+        log.Println("Unexpected error writing IRC payload:", err)
+      }
     }
   }()
 

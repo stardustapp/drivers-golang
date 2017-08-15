@@ -28,3 +28,6 @@ native-props:
 - name: "out"
   type: "chan *Message"
 
+- name: "sendMutex"
+  type: "sync.Mutex"
+

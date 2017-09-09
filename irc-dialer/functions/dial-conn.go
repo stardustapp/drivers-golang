@@ -123,11 +123,16 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   go func() {
     if err := conn.svc.Run(); err != nil {
       log.Println("Failed to run client:", err)
-      conn.State = "Closed: " + err.Error()
-    } else {
-      // pretty sure this'll never hit
-      conn.State = "Closed"
+
+      addMsg(&Message{
+        Command: "LOG",
+        Params: buildArrayFolder("Connection closed: " + err.Error()),
+        Source: "dialer",
+        Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+      })
     }
+
+    conn.State = "Closed"
 
     // synchronize to prevent send-message from panicing
     conn.sendMutex.Lock()

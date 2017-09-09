@@ -70,6 +70,19 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     User: config.Username,
     Name: config.FullName,
     Handler: irc.HandlerFunc(func(c *irc.Client, m *irc.Message) {
+
+      // Clean up CTCP stuff so everyone doesn't have to parse it manually.
+      // TODO: the go-irc library does this but only for PRIVMSG
+      // TODO: split the ctcp cmd from the ctcp args
+      if m.Command == "NOTICE" {
+        lastArg := m.Trailing()
+        lastIdx := len(lastArg) - 1
+        if lastIdx > 0 && lastArg[0] == '\x01' && lastArg[lastIdx] == '\x01' {
+          m.Command = "CTCP_ANSWER"
+          m.Params[len(m.Params)-1] = lastArg[1:lastIdx]
+        }
+      }
+
       // Add inbound messages to the history
       msg := &Message{
         Command: m.Command,
@@ -171,8 +184,26 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         }
       }
 
+      // encode CTCP payloads and answers
+      command := msg.Command
+      if command == "CTCP" || command == "CTCP_ANSWER" {
+        var payload string
+        if len(params) > 2 {
+          payload = "\x01" + params[1] + " " + params[2] + "\x01"
+        } else if len(params) == 2 {
+          payload = "\x01" + params[1] + "\x01"
+        }
+        params = []string{params[0], payload}
+
+        if command == "CTCP_ANSWER" {
+          command = "NOTICE"
+        } else {
+          command = "PRIVMSG"
+        }
+      }
+
       err := conn.svc.WriteMessage(&irc.Message{
-        Command: msg.Command,
+        Command: command,
         Params: params,
         Tags: tags,
       })

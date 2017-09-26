@@ -9,6 +9,7 @@ import (
   "github.com/Shopify/go-lua"
 
   "github.com/stardustapp/core/base"
+  "github.com/stardustapp/core/extras"
   "github.com/stardustapp/core/inmem"
   "github.com/stardustapp/core/skylink"
   "github.com/stardustapp/core/toolbox"
@@ -179,6 +180,7 @@ func (p *Process) launch() {
     // ctx.startRoutine(name[, inputTable])
     {"startRoutine", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:startRoutine", "app:"+p.App.AppName)
 
       //k, v := lua.CheckString(l, 2), l.ToValue(3)
       //steps = append(steps, step{name: k, function: v})
@@ -202,6 +204,7 @@ func (p *Process) launch() {
     // TODO: add readonly 'chroot' variant, returns 'nil' if not exist
     {"mkdirp", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:mkdirp", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua mkdirp to", path, "from", ctx.Name())
@@ -228,6 +231,7 @@ func (p *Process) launch() {
     // ctx.import(wireUri) Context
     {"import", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:import", "app:"+p.App.AppName)
 
       wireUri := lua.CheckString(l, 1)
       log.Println("Lua opening wire", wireUri)
@@ -259,6 +263,7 @@ func (p *Process) launch() {
     // ctx.read([pathRoot,] pathParts string...) (val string)
     {"read", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:read", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua read from", path, "from", ctx.Name())
@@ -276,6 +281,7 @@ func (p *Process) launch() {
     // TODO: reimplement as an enumeration
     {"readDir", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:readDir", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua readdir on", path, "from", ctx.Name())
@@ -292,6 +298,7 @@ func (p *Process) launch() {
     // ctx.store([pathRoot,] pathParts string..., thingToStore any) (ok bool)
     {"store", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:store", "app:"+p.App.AppName)
 
       // get the thing to store off the end
       entry := readLuaEntry(l, -1)
@@ -314,6 +321,7 @@ func (p *Process) launch() {
     // ctx.invoke([pathRoot,] pathParts string..., input any) (output any)
     {"invoke", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:invoke", "app:"+p.App.AppName)
 
       // get the thing to store off the end, can be nil
       input := readLuaEntry(l, -1)
@@ -356,6 +364,7 @@ func (p *Process) launch() {
     // ctx.unlink([pathRoot,] pathParts string...) (ok bool)
     {"unlink", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:unlink", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua unlike of", path, "from", ctx.Name())
@@ -369,6 +378,7 @@ func (p *Process) launch() {
     // Entry tables have: name, path, type, stringValue
     {"enumerate", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:enumerate", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
       log.Println("Lua enumeration on", path, "from", ctx.Name())
@@ -409,6 +419,7 @@ func (p *Process) launch() {
     // ctx.log(messageParts string...)
     {"log", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:log", "app:"+p.App.AppName)
 
       n := l.Top()
       parts := make([]string, n)
@@ -431,6 +442,7 @@ func (p *Process) launch() {
     // ctx.sleep(milliseconds int)
     {"sleep", func(l *lua.State) int {
       checkProcessHealth(l)
+      extras.MetricIncr("runtime.syscall", "call:sleep", "app:"+p.App.AppName)
       // TODO: support interupting to abort
 
       ms := lua.CheckInteger(l, 1)
@@ -444,12 +456,14 @@ func (p *Process) launch() {
 
     // ctx.timestamp() string
     {"timestamp", func(l *lua.State) int {
+      extras.MetricIncr("runtime.syscall", "call:timestamp", "app:"+p.App.AppName)
       l.PushString(time.Now().UTC().Format(time.RFC3339))
       return 1
     }},
 
     // ctx.splitString(fulldata string, knife string) []string
     {"splitString", func(l *lua.State) int {
+      extras.MetricIncr("runtime.syscall", "call:splitString", "app:"+p.App.AppName)
       str := lua.CheckString(l, 1)
       knife := lua.CheckString(l, 2)
       l.SetTop(0)

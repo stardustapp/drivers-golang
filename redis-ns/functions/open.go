@@ -1,14 +1,17 @@
 import (
   "log"
+  "errors"
+  "strings"
 
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/extras"
   "github.com/stardustapp/core/inmem"
+  "github.com/stardustapp/core/skylink"
 
   "github.com/go-redis/redis"
 )
 
-// Performant Namesystem using Redis as a storage driver
+// Performant subscribable namesystem using Redis as a storage driver
 // Kept seperate from the Redis API client, as this is very special-cased
 // Assumes literally everything except credentials
 
@@ -42,7 +45,7 @@ func (c *Client) getRoot() base.Folder {
     rootNid = c.newNode("root", "Folder")
     c.svc.Set(c.prefix+"root", rootNid, 0)
   }
-  return c.getEntry(rootNid).(base.Folder)
+  return c.getEntry(rootNid, false).(base.Folder)
 }
 
 func (c *Client) newNode(name, typeStr string) string {
@@ -66,7 +69,7 @@ func (c *Client) typeOf(nid string) string {
   return c.svc.Get(c.prefixFor(nid, "type")).Val()
 }
 
-func (c *Client) getEntry(nid string) base.Entry {
+func (c *Client) getEntry(nid string, shallow bool) base.Entry {
   name := c.nameOf(nid)
   prefix := c.prefixFor(nid, "")
   switch c.typeOf(nid) {
@@ -85,10 +88,14 @@ func (c *Client) getEntry(nid string) base.Entry {
     return inmem.NewFile(name, data)
 
   case "Folder":
-    return &redisNsFolder{
-      client: c,
-      nid:    nid,
-      prefix: prefix,
+    if shallow {
+      return inmem.NewFolder(name)
+    } else {
+      return &redisNsFolder{
+        client: c,
+        nid:    nid,
+        prefix: prefix,
+      }
     }
 
   default:
@@ -122,7 +129,7 @@ func (e *redisNsFolder) Fetch(name string) (entry base.Entry, ok bool) {
     return nil, false
   }
 
-  entry = e.client.getEntry(nid)
+  entry = e.client.getEntry(nid, false)
   ok = entry != nil
   return
 }
@@ -145,7 +152,7 @@ func (e *redisNsFolder) Put(name string, entry base.Entry) (ok bool) {
 
   case base.Folder:
     nid = e.client.newNode(entry.Name(), "Folder")
-    dest := e.client.getEntry(nid).(base.Folder)
+    dest := e.client.getEntry(nid, false).(base.Folder)
 
     // recursively copy entire folder to redis
     for _, child := range entry.Children() {
@@ -181,3 +188,107 @@ func (e *redisNsFolder) Put(name string, entry base.Entry) (ok bool) {
     return true
   }
 }
+
+///////////////////////////////////////////
+// Experimental subscribe() impl
+// Here be dragons!
+
+type subState struct {
+  client *Client
+  sub      *skylink.Subscription
+
+  nidMap map[string]*subNode
+}
+
+type subNode struct {
+  nid      string
+  children map[string]*subNode
+  path     string
+  height   int // remaining children depths
+}
+
+func (n *subNode) load(state *subState) {
+  // send self
+  entry := state.client.getEntry(n.nid, true)
+  state.sub.SendNotification("Added", n.path, entry)
+
+  // recurse into any children
+  if n.height > 0 {
+    prefix := n.path
+    if prefix != "" {
+      prefix += "/"
+    }
+
+    childKey := state.client.prefixFor(n.nid, "children")
+    for name, nid := range state.client.svc.HGetAll(childKey).Val() {
+      node := &subNode{
+        nid: nid,
+        children: make(map[string]*subNode),
+        path: prefix+name,
+        height: n.height - 1,
+      }
+      n.children[name] = node
+      state.nidMap[nid] = node
+      node.load(state)
+    }
+  }
+}
+
+func (n *subNode) processEvent(action, field string, state *subState) {
+  log.Println("redis node", n.nid, "received", action, "event on", field)
+  // TODO: send notifications
+}
+
+func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
+  if resp := e.client.svc.ConfigSet("notify-keyspace-events", "AK"); resp.Err() != nil {
+    log.Println("Couldn't configure keyspace events.", resp.Err())
+  }
+  log.Println("Starting redis-ns sub")
+
+  pubsub := e.client.svc.Subscribe()
+  //defer pubsub.Close()
+  pattern := "__keyspace@0__:"+e.client.prefix+"nodes/*"
+  if err := pubsub.PSubscribe(pattern); err != nil {
+    return errors.New("redis sub error: "+err.Error())
+  }
+
+  // build up map of nodes we initially see / care about
+  state := &subState{
+    client: e.client,
+    sub: s,
+    nidMap: make(map[string]*subNode),
+  }
+
+  go func(state *subState) {
+    defer log.Println("stopped sub loop")
+    // defer close(state.sub.streamC) TODO
+
+    rootNode := &subNode{
+      nid: e.nid,
+      children: make(map[string]*subNode),
+      path: "",
+      height: s.MaxDepth,
+    }
+    state.nidMap[e.nid] = rootNode
+    rootNode.load(state)
+    s.SendNotification("Ready", "", nil)
+
+    log.Println("starting sub loop")
+    for msg := range pubsub.Channel() {
+      msgKey := msg.Channel[(len(pattern)-1):]
+      parts := strings.Split(msgKey, ":")
+      msgNid := parts[0]
+      msgField := parts[1]
+
+      log.Println("received payload", msg.Payload, "for", msgNid, "field", msgField)
+      if node, ok := state.nidMap[msgNid]; ok {
+        node.processEvent(msg.Payload, msgField, state)
+      }
+    }
+  }(state)
+
+  return nil // errors.New("not implemented yet")
+}
+
+
+

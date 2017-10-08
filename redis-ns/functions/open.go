@@ -1,7 +1,10 @@
 import (
   "log"
   "errors"
+  "os"
+  "fmt"
   "strings"
+  "net"
 
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/extras"
@@ -15,7 +18,7 @@ import (
 // Kept seperate from the Redis API client, as this is very special-cased
 // Assumes literally everything except credentials
 
-func OpenImpl(opts *MountOpts) *Client {
+func (r *Root) OpenImpl(opts *MountOpts) *Client {
   if opts.Address == "" {
     opts.Address = "localhost:6379"
   }
@@ -29,12 +32,43 @@ func OpenImpl(opts *MountOpts) *Client {
     DB:       0, // use default DB
   })
 
+
+  // TODO: this should be made already
+  if r.Sessions == nil {
+    r.Sessions = inmem.NewFolder("sessions")
+  }
+  sessionId := extras.GenerateId()
+
+  // Return absolute URI to the created session
+  name, err := os.Hostname()
+  if err != nil {
+    log.Println("Oops 1:", err)
+    return nil // "Err! no ip"
+  }
+  addrs, err := net.LookupHost(name)
+  if err != nil {
+    log.Println("Oops 2:", err)
+    return nil // "Err! no host"
+  }
+  if len(addrs) < 1 {
+    log.Println("Oops 2:", err)
+    return nil // "Err! no host ip"
+  }
+  selfIp := addrs[0]
+  uri := fmt.Sprintf("skylink+ws://%s:9234/pub/sessions/%s", selfIp, sessionId)
+
   client := &Client{
     svc:    svc,
     prefix: opts.Prefix,
+    URI:    uri,
   }
   client.Root = client.getRoot()
   log.Printf("built client %+v", client)
+
+  if ok := r.Sessions.Put(sessionId, client); !ok {
+    log.Println("Session store rejected us :(", err)
+    return nil
+  }
   return client
 }
 

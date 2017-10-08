@@ -4,6 +4,9 @@ props:
 - name: "root"
   type: "Folder"
 
+- name: "uri"
+  type: "String"
+
 native-props:
 - name: "svc"
   type: "*redis.Client"

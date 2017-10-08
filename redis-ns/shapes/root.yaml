@@ -5,3 +5,7 @@ props:
   type: "Function"
   target: "open"
 
+- name: "sessions"
+  type: "Folder"
+  target: "client"
+

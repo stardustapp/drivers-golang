@@ -262,15 +262,77 @@ func (n *subNode) load(state *subState) {
         height: n.height - 1,
       }
       n.children[name] = node
+      log.Println("adding redis node", nid, "path", n.path, "to sub nidMap")
       state.nidMap[nid] = node
       node.load(state)
     }
   }
 }
 
+func (n *subNode) unload(state *subState) {
+  log.Println("unloading redis node", n.nid, "path", n.path)
+
+  // remove children first
+  if n.children != nil {
+    for _, child := range n.children {
+      child.unload(state)
+    }
+  }
+
+  delete(state.nidMap, n.nid)
+  state.sub.SendNotification("Removed", n.path, nil)
+}
+
 func (n *subNode) processEvent(action, field string, state *subState) {
-  log.Println("redis node", n.nid, "received", action, "event on", field)
-  // TODO: send notifications
+  log.Println("redis node", n.nid, "path", n.path, "received", action, "event on", field)
+
+  if (field == "children") {
+    // ignore if not recursive
+    if n.height <= 0 {
+      log.Println("redis node", n.nid, "path", n.path, "ignoring child event - not recursive")
+      return
+    }
+
+    prefix := n.path
+    if prefix != "" {
+      prefix += "/"
+    }
+
+    childKey := state.client.prefixFor(n.nid, "children")
+    //changed := make(map[string]string) // name => new-nid
+    //seen := make([]string)
+    for name, nid := range state.client.svc.HGetAll(childKey).Val() {
+
+      // check if child name already exited
+      if node, ok := n.children[name]; ok {
+        if node.nid == nid {
+          // child reference didn't change
+          continue
+        }
+
+        // child changed nid, remove the old node
+        node.unload(state)
+        delete(n.children, name)
+        log.Println("update: child", name, "changed nid to", nid, "from", node.nid)
+      }
+
+      // add the new child
+      node := &subNode{
+        nid: nid,
+        children: make(map[string]*subNode),
+        path: prefix+name,
+        height: n.height - 1,
+      }
+      n.children[name] = node
+      log.Println("update: adding nid", nid, "path", n.path, "to sub nidMap")
+      state.nidMap[nid] = node
+      node.load(state)
+    }
+
+    //removed := make([]string)
+  } else {
+    log.Println("WARN: redis node", n.nid, "path", n.path, "got unimpl event", action, field)
+  }
 }
 
 func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
@@ -323,6 +385,3 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
 
   return nil // errors.New("not implemented yet")
 }
-
-
-

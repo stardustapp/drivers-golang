@@ -9,3 +9,7 @@ props:
   type: "Folder"
   target: "client"
 
+- name: "dial"
+  type: "Function"
+  target: "dial"
+

@@ -116,7 +116,16 @@ func (c *Client) getEntry(nid string, shallow bool) base.Entry {
 
   case "String":
     value := c.svc.Get(prefix + "value").Val()
-    return inmem.NewString(name, value)
+    str := inmem.NewString(name, value)
+    if shallow {
+      return str
+    } else {
+      return &redisNsString{
+        client: c,
+        nid: nid,
+        String: str,
+      }
+    }
 
   case "Link":
     value := c.svc.Get(prefix + "target").Val()
@@ -170,6 +179,10 @@ func (e *redisNsFolder) Fetch(name string) (entry base.Entry, ok bool) {
   }
 
   entry = e.client.getEntry(nid, false)
+  if str, ok := entry.(*redisNsString); ok {
+    str.parent = e
+    str.field = name
+  }
   ok = entry != nil
   return
 }
@@ -228,6 +241,17 @@ func (e *redisNsFolder) Put(name string, entry base.Entry) (ok bool) {
     return true
   }
 }
+
+type redisNsString struct {
+  client *Client
+  nid    string // nid of initial value
+  parent *redisNsFolder // ref to parent's nid
+  field  string // parent's name for child
+  *inmem.String // has child's own name
+}
+
+var _ base.String = (*redisNsString)(nil)
+
 
 ///////////////////////////////////////////
 // Experimental subscribe() impl
@@ -388,6 +412,80 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
       }
     }
   }(state)
+
+  return nil // errors.New("not implemented yet")
+}
+
+
+
+
+
+///////////////////////////////////////////
+// Experimental subscribe() impl for single strings
+// Here be dragons!
+
+type strSubState struct {
+  client *Client
+  sub      *skylink.Subscription
+
+  childNid string
+  parentNid string
+  parentField string
+}
+
+/*
+  entry := state.client.getEntry(n.nid, true)
+  state.sub.SendNotification("Added", n.path, entry)
+
+  state.sub.SendNotification("Removed", n.path, nil)
+*/
+
+func (e *redisNsString) Subscribe(s *skylink.Subscription) (err error) {
+  if resp := e.client.svc.ConfigSet("notify-keyspace-events", "AK"); resp.Err() != nil {
+    log.Println("Couldn't configure keyspace events.", resp.Err())
+  }
+  log.Println("Starting redis-ns string sub")
+
+  pubsub := e.client.svc.Subscribe()
+  //defer pubsub.Close()
+
+  childKey := e.client.prefixFor(e.parent.nid, "children")
+  evtKey := "__keyspace@0__:"+childKey
+  if err := pubsub.Subscribe(evtKey); err != nil {
+    return errors.New("redis string sub error: "+err.Error())
+  }
+
+  //parentNid: e.parent.nid,
+  //parentField: e.field
+  //childNid: e.nid
+
+  go func() {
+    defer log.Println("stopped string sub loop")
+    // defer close(state.sub.streamC) TODO
+
+    latestNid := e.client.svc.HGet(childKey, e.field).Val()
+    if latestNid != "" {
+      s.SendNotification("Added", "", e.client.getEntry(latestNid, true))
+    }
+    s.SendNotification("Ready", "", nil)
+
+    log.Println("starting string sub loop")
+    for msg := range pubsub.Channel() {
+      log.Println("string sub received payload", msg.Payload, "for", e.parent.nid)
+      newNid := e.client.svc.HGet(childKey, e.field).Val()
+      if newNid == latestNid {
+        continue
+      }
+
+      if newNid == "" {
+        s.SendNotification("Removed", "", nil)
+      } else {
+        s.SendNotification("Added", "", e.client.getEntry(newNid, true))
+      }
+      log.Println("string sub nid changed from", latestNid, "to", newNid)
+      latestNid = newNid
+    }
+  }()
 
   return nil // errors.New("not implemented yet")
 }

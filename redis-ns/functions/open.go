@@ -314,7 +314,7 @@ func (n *subNode) unload(state *subState) {
 }
 
 func (n *subNode) processEvent(action, field string, state *subState) {
-  log.Println("redis node", n.nid, "path", n.path, "received", action, "event on", field)
+  //log.Println("redis node", n.nid, "path", n.path, "received", action, "event on", field)
 
   if (field == "children") {
     // ignore if not recursive
@@ -406,7 +406,6 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
       msgNid := parts[0]
       msgField := parts[1]
 
-      log.Println("received payload", msg.Payload, "for", msgNid, "field", msgField)
       if node, ok := state.nidMap[msgNid]; ok {
         node.processEvent(msg.Payload, msgField, state)
       }

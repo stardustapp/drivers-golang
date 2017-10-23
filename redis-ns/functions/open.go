@@ -271,10 +271,14 @@ type subNode struct {
   height   int // remaining children depths
 }
 
-func (n *subNode) load(state *subState) {
+func (n *subNode) load(state *subState, asChanged bool) {
   // send self
   entry := state.client.getEntry(n.nid, true)
-  state.sub.SendNotification("Added", n.path, entry)
+  if asChanged {
+    state.sub.SendNotification("Changed", n.path, entry)
+  } else {
+    state.sub.SendNotification("Added", n.path, entry)
+  }
 
   // recurse into any children
   if n.height > 0 {
@@ -294,23 +298,25 @@ func (n *subNode) load(state *subState) {
       n.children[name] = node
       log.Println("adding redis node", nid, "path", n.path, "to sub nidMap")
       state.nidMap[nid] = node
-      node.load(state)
+      node.load(state, false)
     }
   }
 }
 
-func (n *subNode) unload(state *subState) {
+func (n *subNode) unload(state *subState, andRemove bool) {
   log.Println("unloading redis node", n.nid, "path", n.path)
 
   // remove children first
   if n.children != nil {
     for _, child := range n.children {
-      child.unload(state)
+      child.unload(state, true)
     }
   }
 
   delete(state.nidMap, n.nid)
-  state.sub.SendNotification("Removed", n.path, nil)
+  if andRemove {
+    state.sub.SendNotification("Removed", n.path, nil)
+  }
 }
 
 func (n *subNode) processEvent(action, field string, state *subState) {
@@ -333,6 +339,7 @@ func (n *subNode) processEvent(action, field string, state *subState) {
     //seen := make([]string)
     for name, nid := range state.client.svc.HGetAll(childKey).Val() {
 
+      var alreadyExisted bool
       // check if child name already exited
       if node, ok := n.children[name]; ok {
         if node.nid == nid {
@@ -341,7 +348,8 @@ func (n *subNode) processEvent(action, field string, state *subState) {
         }
 
         // child changed nid, remove the old node
-        node.unload(state)
+        node.unload(state, false)
+        alreadyExisted = true
         delete(n.children, name)
         log.Println("update: child", name, "changed nid to", nid, "from", node.nid)
       }
@@ -356,9 +364,10 @@ func (n *subNode) processEvent(action, field string, state *subState) {
       n.children[name] = node
       log.Println("update: adding nid", nid, "path", n.path, "to sub nidMap")
       state.nidMap[nid] = node
-      node.load(state)
+      node.load(state, alreadyExisted)
     }
 
+    // TODO: relay removals
     //removed := make([]string)
   } else {
     log.Println("WARN: redis node", n.nid, "path", n.path, "got unimpl event", action, field)
@@ -396,7 +405,7 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
       height: s.MaxDepth,
     }
     state.nidMap[e.nid] = rootNode
-    rootNode.load(state)
+    rootNode.load(state, false)
     s.SendNotification("Ready", "", nil)
 
     log.Println("starting sub loop")
@@ -474,12 +483,12 @@ func (e *redisNsString) Subscribe(s *skylink.Subscription) (err error) {
       newNid := e.client.svc.HGet(childKey, e.field).Val()
       if newNid == latestNid {
         continue
-      }
-
-      if newNid == "" {
+      } else if newNid == "" {
         s.SendNotification("Removed", "", nil)
-      } else {
+      } else if latestNid == "" {
         s.SendNotification("Added", "", e.client.getEntry(newNid, true))
+      } else {
+        s.SendNotification("Changed", "", e.client.getEntry(newNid, true))
       }
       log.Println("string sub nid changed from", latestNid, "to", newNid)
       latestNid = newNid

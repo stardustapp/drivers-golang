@@ -381,7 +381,6 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
   log.Println("Starting redis-ns sub")
 
   pubsub := e.client.svc.Subscribe()
-  //defer pubsub.Close()
   pattern := "__keyspace@0__:"+e.client.prefix+"nodes/*"
   if err := pubsub.PSubscribe(pattern); err != nil {
     return errors.New("redis sub error: "+err.Error())
@@ -394,9 +393,16 @@ func (e *redisNsFolder) Subscribe(s *skylink.Subscription) (err error) {
     nidMap: make(map[string]*subNode),
   }
 
+  go func(stopC <-chan struct{}) {
+    log.Println("setting folder sub pubsub closer")
+    <-stopC
+    log.Println("closing folder sub pubsub")
+    pubsub.Close()
+  }(s.StopC)
+
   go func(state *subState) {
     defer log.Println("stopped sub loop")
-    // defer close(state.sub.streamC) TODO
+    defer s.Close()
 
     rootNode := &subNode{
       nid: e.nid,
@@ -455,7 +461,6 @@ func (e *redisNsString) Subscribe(s *skylink.Subscription) (err error) {
   log.Println("Starting redis-ns string sub")
 
   pubsub := e.client.svc.Subscribe()
-  //defer pubsub.Close()
 
   childKey := e.client.prefixFor(e.parent.nid, "children")
   evtKey := "__keyspace@0__:"+childKey
@@ -467,9 +472,16 @@ func (e *redisNsString) Subscribe(s *skylink.Subscription) (err error) {
   //parentField: e.field
   //childNid: e.nid
 
+  go func(stopC <-chan struct{}) {
+    log.Println("setting string sub pubsub closer")
+    <-stopC
+    log.Println("closing string sub pubsub")
+    pubsub.Close()
+  }(s.StopC)
+
   go func() {
     defer log.Println("stopped string sub loop")
-    // defer close(state.sub.streamC) TODO
+    defer s.Close()
 
     latestNid := e.client.svc.HGet(childKey, e.field).Val()
     if latestNid != "" {

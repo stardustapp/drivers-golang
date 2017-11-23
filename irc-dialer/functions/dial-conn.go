@@ -1,4 +1,5 @@
 import (
+  "crypto/tls"
   "log"
   "fmt"
   "net"
@@ -106,11 +107,25 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   }
 
   // Establish the network connection
-  log.Println("Connecting to", endpoint, "using", config)
-  netConn, err := net.Dial("tcp", endpoint)
-  if err != nil {
-    log.Println("Failed to dial", endpoint, err)
-    return "Err! " + err.Error()
+  var netConn net.Conn
+  var err error
+  if config.UseTLS == "yes" {
+    log.Println("Connecting to", endpoint, "using TLS over TCP")
+    netConn, err = tls.Dial("tcp", endpoint, &tls.Config{
+      NextProtos: []string{"irc"},
+    })
+    if err != nil {
+      log.Println("Failed to dial", endpoint, "with TLS:", err)
+      return "Err! " + err.Error()
+    }
+
+  } else {
+    log.Println("Connecting to", endpoint, "using bare TCP")
+    netConn, err = net.Dial("tcp", endpoint)
+    if err != nil {
+      log.Println("Failed to dial", endpoint, err)
+      return "Err! " + err.Error()
+    }
   }
 
   addMsg(&Message{
@@ -222,7 +237,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   // Store a session reference
   sessionId := extras.GenerateId()
   if ok := r.Sessions.Put(sessionId, conn); !ok {
-    log.Println("Session store rejected us :(", err)
+    log.Println("Session store rejected us :(")
     return "Err! Couldn't store session"
   }
 

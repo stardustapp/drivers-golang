@@ -26,3 +26,7 @@ props:
   type: "String"
   optional: true
 
+- name: "use-tls"
+  type: "String"
+  optional: true
+

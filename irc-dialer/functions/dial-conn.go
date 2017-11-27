@@ -56,7 +56,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 
     // Trim old messages
     horizon, _ := strconv.Atoi(conn.HistoryHorizon)
-    maxOld := i - 100
+    maxOld := i - 250
     for horizon < maxOld {
       conn.History.Put(strconv.Itoa(horizon), nil)
       horizon++
@@ -107,25 +107,51 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   }
 
   // Establish the network connection
-  var netConn net.Conn
-  var err error
+  log.Println("Connecting to TCP server at", endpoint)
+  rawConn, err := net.Dial("tcp", endpoint)
+  if err != nil {
+    log.Println("Failed to dial", endpoint, err)
+    return "Err! " + err.Error()
+  }
+  var netConn net.Conn = rawConn
+
+  // Record username info in identd server
+  if config.Ident == "" {
+    config.Ident = "dialer"
+  }
+  identdRPC("add " + config.Ident + " " +
+            strings.Split(netConn.LocalAddr().String(),":")[1] + " " +
+            strings.Split(netConn.RemoteAddr().String(),":")[1])
+
+  // Perform TLS setup if desired
   if config.UseTLS == "yes" {
-    log.Println("Connecting to", endpoint, "using TLS over TCP")
-    netConn, err = tls.Dial("tcp", endpoint, &tls.Config{
+    addMsg(&Message{
+      Command: "LOG",
+      Params: buildArrayFolder("Performing TLS handshake..."),
+      Source: "dialer",
+      Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+    })
+
+    // Extract hostname of endpoint
+    colonPos := strings.LastIndex(endpoint, ":")
+    if colonPos == -1 {
+      colonPos = len(endpoint)
+    }
+    hostname := endpoint[:colonPos]
+
+    // Configure a TLS client
+    log.Println("Starting TLS handshake with", endpoint)
+    tlsConn := tls.Client(rawConn, &tls.Config{
+      ServerName: hostname,
       NextProtos: []string{"irc"},
     })
-    if err != nil {
-      log.Println("Failed to dial", endpoint, "with TLS:", err)
-      return "Err! " + err.Error()
-    }
 
-  } else {
-    log.Println("Connecting to", endpoint, "using bare TCP")
-    netConn, err = net.Dial("tcp", endpoint)
-    if err != nil {
-      log.Println("Failed to dial", endpoint, err)
+    // Make sure it's legit
+    if err := tlsConn.Handshake(); err != nil {
+      log.Println("Failed to perform TLS handshake:", endpoint, err)
       return "Err! " + err.Error()
     }
+    netConn = tlsConn
   }
 
   addMsg(&Message{
@@ -136,15 +162,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   })
   conn.State = "Ready"
 
-  // Record username info in identd server
-  if config.Ident == "" {
-    config.Ident = "dialer"
-  }
-  identdRPC("add " + config.Ident + " " +
-            strings.Split(netConn.LocalAddr().String(),":")[1] + " " +
-            strings.Split(netConn.RemoteAddr().String(),":")[1])
-
-  // Create the client
+  // Create the protocol client
   conn.svc = irc.NewClient(netConn, conf)
 
   // Fire it up

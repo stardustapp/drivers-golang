@@ -336,11 +336,12 @@ func (n *subNode) processEvent(action, field string, state *subState) {
 
     childKey := state.client.prefixFor(n.nid, "children")
     //changed := make(map[string]string) // name => new-nid
-    //seen := make([]string)
+    seen := make(map[string]bool)
     for name, nid := range state.client.svc.HGetAll(childKey).Val() {
+      seen[name] = true
 
       var alreadyExisted bool
-      // check if child name already exited
+      // check if child name already existed
       if node, ok := n.children[name]; ok {
         if node.nid == nid {
           // child reference didn't change
@@ -367,8 +368,18 @@ func (n *subNode) processEvent(action, field string, state *subState) {
       node.load(state, alreadyExisted)
     }
 
-    // TODO: relay removals
-    //removed := make([]string)
+    // find old names that weren't mentioned
+    for name, node := range n.children {
+      if seen[name] {
+        continue
+      }
+
+      // remove the deleted node
+      node.unload(state, false)
+      delete(n.children, name)
+      log.Println("update: child", name, "nid", node.nid, "was removed")
+    }
+
   } else {
     log.Println("WARN: redis node", n.nid, "path", n.path, "got unimpl event", action, field)
   }

@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "currency"
+  type: "String"
+
+- name: "prices"
+  type: "Folder"
+

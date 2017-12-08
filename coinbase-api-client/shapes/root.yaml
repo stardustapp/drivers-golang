@@ -1,0 +1,7 @@
+type: "Folder"
+
+props:
+- name: "fetch-prices"
+  type: "Function"
+  target: "fetch-prices"
+

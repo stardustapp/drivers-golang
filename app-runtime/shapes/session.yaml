@@ -5,6 +5,9 @@ props:
   type: "Folder"
   target: "app"
 
+- name: "chart-url"
+  type: "String"
+
 native-props:
 - name: "ctx"
   type: "base.Context"

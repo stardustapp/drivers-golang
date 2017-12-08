@@ -15,6 +15,7 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
   apps := inmem.NewFolder("apps")
   session := &Session{
     Apps: apps,
+    ChartURL: chartUrl,
   }
   sessionCache[chartUrl] = session
 

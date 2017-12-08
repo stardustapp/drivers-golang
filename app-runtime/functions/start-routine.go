@@ -139,7 +139,8 @@ func resolveLuaPath(l *lua.State, parentCtx base.Context) (ctx base.Context, pat
 
 
 func (p *Process) launch() {
-  log.Println("Starting routine", p)
+  metaLog := "lua process [chart:"+p.App.Session.ChartURL+" app:"+p.App.AppName+" routine:"+p.Params.RoutineName+" pid:"+p.ProcessID+"]"
+  log.Println(metaLog, "Starting routine")
 
   sourcePath := "/source/routines/" + p.Params.RoutineName + ".lua"
   source, ok := p.App.ctx.GetFile(sourcePath)
@@ -165,7 +166,7 @@ func (p *Process) launch() {
 
   checkProcessHealth := func(l *lua.State) {
     if p.AbortTime != "" {
-      log.Println("Process", p.ProcessID, "received abort signal")
+      log.Println(metaLog, "received abort signal")
       p.Status = "Aborted"
       lua.Errorf(l, "Stardust process received abort signal at %s", p.AbortTime)
     }
@@ -187,11 +188,11 @@ func (p *Process) launch() {
       }
 
       if l.Top() == 2 && l.IsTable(2) {
-        log.Println("Reading Lua table for routine input", params.RoutineName)
+        log.Println(metaLog, "Reading Lua table for routine input", params.RoutineName)
         params.Input = readLuaEntry(l, 2).(base.Folder)
       }
 
-      log.Printf("Lua started routine %+v", params)
+      log.Printf(metaLog, "started routine %+v", params)
       p.App.StartRoutineImpl(params)
       // TODO: return routine's process
       return 0
@@ -204,7 +205,7 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:mkdirp", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
-      log.Println("Lua mkdirp to", path, "from", ctx.Name())
+      log.Println(metaLog, "mkdirp to", path, "from", ctx.Name())
 
       if ok := toolbox.Mkdirp(ctx, path); !ok {
         lua.Errorf(l, "mkdirp() couldn't create folders for path %s", path)
@@ -231,12 +232,12 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:import", "app:"+p.App.AppName)
 
       wireUri := lua.CheckString(l, 1)
-      log.Println("Lua opening wire", wireUri)
+      log.Println(metaLog, "opening wire", wireUri)
       p.Status = "Waiting: Dialing " + wireUri
 
       // TODO: support abort interruptions
       if wire, ok := openWire(wireUri); ok {
-        log.Println("Lua successfully opened wire", wireUri)
+        log.Println(metaLog, "Lua successfully opened wire", wireUri)
 
         // create a new base.Context
         subNs := base.NewNamespace(wireUri, wire)
@@ -248,7 +249,7 @@ func (p *Process) launch() {
         l.SetMetaTable(-2)
 
       } else {
-        log.Println("Lua failed to open wire", wireUri)
+        log.Println(metaLog, "failed to open wire", wireUri)
         l.PushNil()
       }
 
@@ -263,12 +264,12 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:read", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
-      log.Println("Lua read from", path, "from", ctx.Name())
+      log.Println(metaLog, "read from", path, "from", ctx.Name())
 
       if str, ok := ctx.GetString(path); ok {
         l.PushString(str.Get())
       } else {
-        log.Println("lua read() failed to find string at path", path)
+        log.Println(metaLog, "read() failed to find string at path", path)
         l.PushString("")
       }
       return 1
@@ -281,13 +282,13 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:readDir", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
-      log.Println("Lua readdir on", path, "from", ctx.Name())
+      log.Println(metaLog, "readdir on", path, "from", ctx.Name())
 
       if folder, ok := ctx.GetFolder(path); ok {
         pushLuaTable(l, folder)
       } else {
         l.NewTable()
-        log.Println("lua readdir() failed to find folder at path", path)
+        log.Println(metaLog, "readdir() failed to find folder at path", path)
       }
       return 1
     }},
@@ -310,7 +311,7 @@ func (p *Process) launch() {
       }
 
       // do the thing
-      log.Println("Lua store to", path, "from", ctx.Name(), "of", entry)
+      log.Println(metaLog, "store to", path, "from", ctx.Name(), "of", entry)
       l.PushBoolean(ctx.Put(path, entry))
       return 1
     }},
@@ -327,7 +328,7 @@ func (p *Process) launch() {
       // read all remaining args as a path
       ctx, path := resolveLuaPath(l, p.App.ctx)
       p.Status = "Blocked: Invoking " + ctx.Name() + path + " since " + time.Now().Format(time.RFC3339Nano)
-      log.Println("Lua invoke of", path, "from", ctx.Name(), "with input", input)
+      log.Println(metaLog, "invoke of", path, "from", ctx.Name(), "with input", input)
 
       ivk, ok := ctx.GetFunction(path + "/invoke")
       if !ok {
@@ -364,7 +365,7 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:unlink", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
-      log.Println("Lua unlike of", path, "from", ctx.Name())
+      log.Println(metaLog, "unlink of", path, "from", ctx.Name())
 
       // do the thing
       l.PushBoolean(ctx.Put(path, nil))
@@ -378,7 +379,7 @@ func (p *Process) launch() {
       extras.MetricIncr("runtime.syscall", "call:enumerate", "app:"+p.App.AppName)
 
       ctx, path := resolveLuaPath(l, p.App.ctx)
-      log.Println("Lua enumeration on", path, "from", ctx.Name())
+      log.Println(metaLog, "enumeration on", path, "from", ctx.Name())
 
       startEntry, ok := ctx.Get(path)
       if !ok {
@@ -436,7 +437,7 @@ func (p *Process) launch() {
       }
       l.SetTop(0)
 
-      log.Println("Lua log:", strings.Join(parts, " "))
+      log.Println(metaLog, "debug log:", strings.Join(parts, " "))
       return 0
     }},
 
@@ -486,6 +487,6 @@ func (p *Process) launch() {
   } else {
     p.Status = "Completed"
   }
-  log.Println("Lua routine", p.Params.RoutineName, p.Status)
+  log.Println(metaLog, "stopped:", p.Status)
   p.EndTime = time.Now().Format(time.RFC3339Nano)
 }

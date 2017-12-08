@@ -72,19 +72,16 @@ func readLuaEntry(l *lua.State, index int) base.Entry {
 
   case lua.TypeTable:
     // Tables become folders
-    log.Println("luat idx before", l.Top(), index)
     l.PushValue(index)
     folder := inmem.NewFolder("input")
     l.PushNil() // Add nil entry on stack (need 2 free slots).
     for l.Next(-2) {
       key, _ := l.ToString(-2)
-      log.Println("converting key", key)
       val := readLuaEntry(l, -1)
       l.Pop(1) // Remove val, but need key for the next iter.
       folder.Put(key, val)
     }
     l.Pop(1)
-    log.Println("luat idx after", l.Top())
     return folder
 
   default:
@@ -429,6 +426,10 @@ func (p *Process) launch() {
           parts[i] = lua.CheckString(l, i+1)
         case lua.TypeNumber:
           parts[i] = fmt.Sprintf("%v", lua.CheckNumber(l, i+1))
+        case lua.TypeUserData:
+          userCtx := lua.CheckUserData(l, i+1, "stardust/base.Context")
+          parts[i] = userCtx.(base.Context).Name()
+
         default:
           parts[i] = fmt.Sprintf("[lua %s]", l.TypeOf(i+1).String())
         }

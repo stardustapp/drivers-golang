@@ -64,6 +64,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     }
   }
 
+  var currentNick string
+
   // Configure IRC library as needed
   conf := irc.ClientConfig{
     Nick: config.Nickname,
@@ -81,6 +83,17 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         if lastIdx > 0 && lastArg[0] == '\x01' && lastArg[lastIdx] == '\x01' {
           m.Command = "CTCP_ANSWER"
           m.Params[len(m.Params)-1] = lastArg[1:lastIdx]
+        }
+      }
+
+      // Track nickname - TODO: irc-app really should handle this
+      if m.Command == "001" {
+        currentNick = m.Params[0]
+        log.Println("Changed nickname from", currentNick, "to", m.Params[0])
+      }
+      if m.Command == "NICK" {
+        if m.Prefix.Name == currentNick && len(m.Params) > 0 {
+          currentNick = m.Params[0]
         }
       }
 
@@ -189,7 +202,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   // Start outbound pump
   go func() {
     for msg := range conn.out {
-      msg.PrefixName = conn.svc.CurrentNick()
+      msg.PrefixName = currentNick
       msg.Source = "client"
       msg.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
       addMsg(msg)

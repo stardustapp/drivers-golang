@@ -11,6 +11,7 @@ import (
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/inmem"
   "github.com/stardustapp/core/extras"
+  "github.com/stardustapp/core/toolbox"
 
   irc "gopkg.in/irc.v1"
 )
@@ -37,11 +38,11 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   // Create the connection holder
   conn := &Connection{
     Config: config,
-    State: "Pending",
+    State: toolbox.NewReactiveString("state", "Pending"),
 
     History: inmem.NewFolder("history"),
     HistoryHorizon: "0",
-    HistoryLatest: "0",
+    HistoryLatest: toolbox.NewReactiveString("history-latest", "0"),
 
     out: make(chan *Message),
   }
@@ -49,10 +50,10 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 
   // Helper to store messages
   addMsg := func (msg *Message) {
-    i, _ := strconv.Atoi(conn.HistoryLatest)
+    i, _ := strconv.Atoi(conn.HistoryLatest.Get())
     nextSeq := strconv.Itoa(i + 1)
     conn.History.Put(nextSeq, msg)
-    conn.HistoryLatest = nextSeq
+    conn.HistoryLatest.Set(nextSeq)
 
     // Trim old messages
     horizon, _ := strconv.Atoi(conn.HistoryHorizon)
@@ -124,6 +125,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   rawConn, err := net.Dial("tcp", endpoint)
   if err != nil {
     log.Println("Failed to dial", endpoint, err)
+    conn.State.Set("Failed: Dial error")
     return "Err! " + err.Error()
   }
   var netConn net.Conn = rawConn
@@ -162,6 +164,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     // Make sure it's legit
     if err := tlsConn.Handshake(); err != nil {
       log.Println("Failed to perform TLS handshake:", endpoint, err)
+      conn.State.Set("Failed: TLS error")
       return "Err! " + err.Error()
     }
     netConn = tlsConn
@@ -173,7 +176,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     Source: "dialer",
     Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
   })
-  conn.State = "Ready"
+  conn.State.Set("Ready")
 
   // Create the protocol client
   conn.svc = irc.NewClient(netConn, conf)
@@ -191,7 +194,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       })
     }
 
-    conn.State = "Closed"
+    conn.State.Set("Closed")
 
     // synchronize to prevent send-message from panicing
     conn.sendMutex.Lock()

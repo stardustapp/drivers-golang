@@ -6,6 +6,7 @@ props:
 
 - name: "state"
   type: "String"
+  reactive: true
 
 - name: "send"
   type: "Function"
@@ -20,6 +21,7 @@ props:
 
 - name: "history-latest"
   type: "String"
+  reactive: true
 
 native-props:
 - name: "svc"

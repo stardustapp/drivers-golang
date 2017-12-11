@@ -2,10 +2,10 @@ func (c *Connection) SendMessageImpl(m *Message) string {
   c.sendMutex.Lock()
   defer c.sendMutex.Unlock()
 
-  if c.State == "Ready" {
+  if c.State.Get() == "Ready" {
     c.out <- m
-    return "ok"
+    return "Ok"
   } else {
-    return "failed: connection is " + c.State
+    return "Failed: connection is " + c.State.Get()
   }
 }

@@ -5,8 +5,10 @@ import (
   "net"
   "time"
   "os"
+  "os/signal"
   "strings"
   "strconv"
+  "syscall"
 
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/inmem"
@@ -15,6 +17,28 @@ import (
 
   irc "gopkg.in/irc.v1"
 )
+
+// set up a global process-shutdown signal
+var shutdownChan chan struct{}
+var isShuttingDown bool
+func init() {
+  shutdownChan = make(chan struct{})
+  c := make(chan os.Signal, 2)
+  signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+  // start waiting for interupt signals
+  go func() {
+    <-c
+    isShuttingDown = true
+    log.Println("WARN: Received Interrupt - quitting all sockets")
+    close(shutdownChan)
+
+    // TODO: waitgroup lol
+    <-c
+    log.Println("FATAL: Received Interrupt AGAIN - suiciding")
+    os.Exit(1)
+  }()
+}
 
 func buildArrayFolder(in ...string) base.Folder {
   folder := inmem.NewFolder("array")
@@ -26,8 +50,15 @@ func buildArrayFolder(in ...string) base.Folder {
 
 // Returns an absolute Skylink URI to the established connection
 func (r *Root) DialConnImpl(config *DialConfig) string {
-  endpoint := fmt.Sprintf("%s:%s", config.Hostname, config.Port)
 
+  // Don't start up if the sky is falling
+  if isShuttingDown {
+    log.Println("warn: rejecting dial due to shutdown state")
+    return "Err: This IRC modem is shutting down"
+  }
+
+  // Build the full endpoint
+  endpoint := fmt.Sprintf("%s:%s", config.Hostname, config.Port)
   firstMsg := &Message{
     Command: "LOG",
     Params: buildArrayFolder("Dialing " + endpoint + " over TCP..."),
@@ -65,6 +96,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     }
   }
 
+  // Track our info for outbound packets
   var currentNick string
 
   // Configure IRC library as needed
@@ -202,6 +234,25 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     conn.sendMutex.Lock()
     defer conn.sendMutex.Unlock()
     close(conn.out)
+  }()
+
+  // Also watch for process shutdown
+  go func() {
+    <-shutdownChan
+    log.Println("Shutting down client", config.Nickname, "on", endpoint)
+
+    // synchronize to prevent send-message from panicing
+    conn.sendMutex.Lock()
+    defer conn.sendMutex.Unlock()
+
+    // attempt to peacefully disconnect
+    conn.out <- &Message{
+      Command: "QUIT",
+      Params: inmem.NewFolderOf("params", inmem.NewString(
+        "1", "IRC modem is shutting down")),
+    }
+
+    conn.State.Set("Quitting")
   }()
 
   // Start outbound pump

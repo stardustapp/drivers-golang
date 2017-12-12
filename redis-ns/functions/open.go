@@ -309,7 +309,7 @@ func (n *subNode) unload(state *subState, andRemove bool) {
   // remove children first
   if n.children != nil {
     for _, child := range n.children {
-      child.unload(state, true)
+      child.unload(state, false)
     }
   }
 
@@ -375,7 +375,7 @@ func (n *subNode) processEvent(action, field string, state *subState) {
       }
 
       // remove the deleted node
-      node.unload(state, false)
+      node.unload(state, true)
       delete(n.children, name)
       log.Println("update: child", name, "nid", node.nid, "was removed")
     }

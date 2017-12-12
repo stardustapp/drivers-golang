@@ -170,6 +170,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     netConn = tlsConn
   }
 
+  // Record that the analog transport is configured
   addMsg(&Message{
     Command: "LOG",
     Params: buildArrayFolder("Connection established."),
@@ -186,6 +187,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     if err := conn.svc.Run(); err != nil {
       log.Println("Failed to run client:", err)
 
+      // We hit this when the client stops running, so record that
       addMsg(&Message{
         Command: "LOG",
         Params: buildArrayFolder("Connection closed: " + err.Error()),

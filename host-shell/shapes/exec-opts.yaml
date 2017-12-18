@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "arguments"
+  type: "Folder"
+
+- name: "executable"
+  type: "String"
+

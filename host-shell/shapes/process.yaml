@@ -1,0 +1,15 @@
+type: "Folder"
+
+props:
+- name: "exit-code"
+  type: "String"
+
+- name: "output"
+  type: "String"
+
+- name: "pid"
+  type: "String"
+
+- name: "status"
+  type: "String"
+

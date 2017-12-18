@@ -1,0 +1,14 @@
+type: "Folder"
+
+props:
+- name: "enable-shell"
+  type: "String"
+  optional: true
+
+- name: "enable-writing"
+  type: "String"
+  optional: true
+
+- name: "fs-root-path"
+  type: "String"
+

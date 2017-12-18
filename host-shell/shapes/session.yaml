@@ -1,0 +1,17 @@
+type: "Folder"
+
+props:
+- name: "exec"
+  type: "Function"
+  target: "exec"
+
+- name: "fs-root"
+  type: "Folder"
+
+- name: "uri"
+  type: "String"
+
+native-props:
+- name: "fs-prefix"
+  type: "string"
+

@@ -1,23 +1,23 @@
 type: "Folder"
 
 props:
-- name: "state"
-  type: "String"
+- name: "participants"
+  type: "Folder"
+  target: "participant"
 
-- name: "username"
+- name: "state"
   type: "String"
 
 - name: "threads"
   type: "Folder"
   target: "thread"
 
-- name: "participants"
-  type: "Folder"
-  target: "participant"
-
 - name: "update-threads"
   type: "Function"
   target: "list-threads"
+
+- name: "username"
+  type: "String"
 
 native-props:
 - name: "svc"

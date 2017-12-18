@@ -1,23 +1,23 @@
 type: "Folder"
 
 props:
-- name: "join"
-  type: "Function"
-  target: "join-channel"
+- name: "chan-name"
+  type: "String"
 
 - name: "connection"
   type: "connection"
 
-- name: "chan-name"
-  type: "String"
+- name: "get-messages"
+  type: "Function"
+  target: "get-messages"
+
+- name: "join"
+  type: "Function"
+  target: "join-channel"
 
 - name: "send-message"
   type: "Function"
   target: "send-message"
-
-- name: "get-messages"
-  type: "Function"
-  target: "get-messages"
 
 native-props:
 - name: "scrollback"

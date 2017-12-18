@@ -1,6 +1,16 @@
 type: "Folder"
 
 props:
+- name: "command"
+  type: "String"
+
+- name: "params"
+  type: "Folder"
+
+- name: "prefix-host"
+  type: "String"
+  optional: true
+
 - name: "prefix-name"
   type: "String"
   optional: true
@@ -9,22 +19,12 @@ props:
   type: "String"
   optional: true
 
-- name: "prefix-host"
-  type: "String"
-  optional: true
-
-- name: "command"
-  type: "String"
-
-- name: "params"
-  type: "Folder"
-
 - name: "source"
-  type: "String"
-
-- name: "timestamp"
   type: "String"
 
 - name: "tags"
   type: "Folder"
+
+- name: "timestamp"
+  type: "String"
 

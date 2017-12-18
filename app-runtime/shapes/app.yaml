@@ -1,34 +1,34 @@
 type: "Folder"
 
 props:
-- name: "session"
-  type: "session"
-
 - name: "app-name"
   type: "String"
 
-- name: "start-routine"
-  type: "Function"
-  target: "start-routine"
+- name: "namespace"
+  type: "Folder"
 
 - name: "processes"
   type: "Folder"
   target: "process"
 
-- name: "namespace"
-  type: "Folder"
-
 - name: "restart"
   type: "Function"
   target: "restart-app"
+
+- name: "session"
+  type: "session"
+
+- name: "start-routine"
+  type: "Function"
+  target: "start-routine"
 
 - name: "status"
   type: "String"
 
 native-props:
-- name: "nextPid"
-  type: "int"
-
 - name: "ctx"
   type: "base.Context"
+
+- name: "nextPid"
+  type: "int"
 

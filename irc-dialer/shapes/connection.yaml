@@ -4,14 +4,6 @@ props:
 - name: "config"
   type: "dial-config"
 
-- name: "state"
-  type: "String"
-  reactive: true
-
-- name: "send"
-  type: "Function"
-  target: "send-message"
-
 - name: "history"
   type: "Folder"
   target: "message"
@@ -23,13 +15,21 @@ props:
   type: "String"
   reactive: true
 
-native-props:
-- name: "svc"
-  type: "*irc.Client"
+- name: "send"
+  type: "Function"
+  target: "send-message"
 
+- name: "state"
+  type: "String"
+  reactive: true
+
+native-props:
 - name: "out"
   type: "chan *Message"
 
 - name: "sendMutex"
   type: "sync.Mutex"
+
+- name: "svc"
+  type: "*irc.Client"
 

@@ -1,9 +1,6 @@
 type: "Folder"
 
 props:
-- name: "options"
-  type: "connection-options"
-
 - name: "get-channel"
   type: "Function"
   target: "get-channel"
@@ -12,10 +9,13 @@ props:
   type: "String"
   optional: true
 
-native-props:
-- name: "svc"
-  type: "*ircevent.Connection"
+- name: "options"
+  type: "connection-options"
 
+native-props:
 - name: "channels"
   type: "map[string]*Channel"
+
+- name: "svc"
+  type: "*ircevent.Connection"
 

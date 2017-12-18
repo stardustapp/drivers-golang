@@ -1,10 +1,10 @@
 type: "Folder"
 
 props:
-- name: "thread-name"
+- name: "fb-id"
   type: "String"
 
-- name: "fb-id"
+- name: "message-count"
   type: "String"
 
 - name: "other-user-id"
@@ -13,24 +13,24 @@ props:
 - name: "participant-ids"
   type: "String"
 
+- name: "server-timestamp"
+  type: "String"
+
 - name: "snippet"
   type: "String"
 
 - name: "snippet-sender-id"
   type: "String"
 
-- name: "unread-count"
+- name: "thread-id"
   type: "String"
 
-- name: "message-count"
+- name: "thread-name"
   type: "String"
 
 - name: "timestamp"
   type: "String"
 
-- name: "server-timestamp"
-  type: "String"
-
-- name: "thread-id"
+- name: "unread-count"
   type: "String"
 

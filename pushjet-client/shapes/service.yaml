@@ -1,12 +1,12 @@
 type: "Folder"
 
 props:
-- name: "send-message"
-  type: "Function"
-  target: "send-message"
-
 - name: "created-at"
   type: "String"
+
+- name: "get-qr-url"
+  type: "Function"
+  target: "get-qr-url"
 
 - name: "icon"
   type: "String"
@@ -17,9 +17,9 @@ props:
 - name: "secret"
   type: "String"
 
-- name: "get-qr-url"
+- name: "send-message"
   type: "Function"
-  target: "get-qr-url"
+  target: "send-message"
 
 - name: "svc-name"
   type: "String"

@@ -8,9 +8,9 @@ props:
   type: "String"
 
 native-props:
-- name: "svc"
-  type: "*redis.Client"
-
 - name: "prefix"
   type: "string"
+
+- name: "svc"
+  type: "*redis.Client"
 

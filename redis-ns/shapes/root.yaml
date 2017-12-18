@@ -1,6 +1,10 @@
 type: "Folder"
 
 props:
+- name: "dial"
+  type: "Function"
+  target: "dial"
+
 - name: "open"
   type: "Function"
   target: "open"
@@ -8,8 +12,4 @@ props:
 - name: "sessions"
   type: "Folder"
   target: "client"
-
-- name: "dial"
-  type: "Function"
-  target: "dial"
 

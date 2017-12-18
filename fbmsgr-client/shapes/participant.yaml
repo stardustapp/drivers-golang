@@ -1,7 +1,7 @@
 type: "Folder"
 
 props:
-- name: "id"
+- name: "big-image-src"
   type: "String"
 
 - name: "fb-id"
@@ -13,15 +13,15 @@ props:
 - name: "href"
   type: "String"
 
+- name: "id"
+  type: "String"
+
 - name: "image-src"
   type: "String"
 
-- name: "big-image-src"
+- name: "participant-name"
   type: "String"
 
 - name: "short-name"
-  type: "String"
-
-- name: "participant-name"
   type: "String"
 

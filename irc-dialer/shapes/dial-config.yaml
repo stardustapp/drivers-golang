@@ -1,11 +1,16 @@
 type: "Folder"
 
 props:
+- name: "full-name"
+  type: "String"
+  optional: true
+
 - name: "hostname"
   type: "String"
 
-- name: "port"
+- name: "ident"
   type: "String"
+  optional: true
 
 - name: "nickname"
   type: "String"
@@ -14,19 +19,14 @@ props:
   type: "String"
   optional: true
 
-- name: "username"
+- name: "port"
   type: "String"
-  optional: true
-
-- name: "full-name"
-  type: "String"
-  optional: true
-
-- name: "ident"
-  type: "String"
-  optional: true
 
 - name: "use-tls"
+  type: "String"
+  optional: true
+
+- name: "username"
   type: "String"
   optional: true
 

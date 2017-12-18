@@ -1,9 +1,9 @@
 type: "Folder"
 
 props:
-- name: "username"
+- name: "password"
   type: "String"
 
-- name: "password"
+- name: "username"
   type: "String"
 

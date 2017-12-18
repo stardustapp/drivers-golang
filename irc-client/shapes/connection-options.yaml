@@ -4,20 +4,20 @@ props:
 - name: "hostname"
   type: "String"
 
-- name: "port"
-  type: "String"
-
 - name: "nickname"
   type: "String"
 
-- name: "username"
+- name: "password"
+  type: "String"
+  optional: true
+
+- name: "port"
   type: "String"
 
 - name: "realname"
   type: "String"
   optional: true
 
-- name: "password"
+- name: "username"
   type: "String"
-  optional: true
 

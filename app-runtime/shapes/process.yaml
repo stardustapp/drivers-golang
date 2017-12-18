@@ -1,17 +1,12 @@
 type: "Folder"
 
 props:
+- name: "abort-time"
+  type: "String"
+  optional: true
+
 - name: "app"
   type: "app"
-
-- name: "process-id"
-  type: "String"
-
-- name: "status"
-  type: "String"
-
-- name: "start-time"
-  type: "String"
 
 - name: "end-time"
   type: "String"
@@ -19,7 +14,12 @@ props:
 - name: "params"
   type: "process-params"
 
-- name: "abort-time"
+- name: "process-id"
   type: "String"
-  optional: true
+
+- name: "start-time"
+  type: "String"
+
+- name: "status"
+  type: "String"
 

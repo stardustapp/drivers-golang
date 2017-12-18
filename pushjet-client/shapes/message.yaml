@@ -1,16 +1,16 @@
 type: "Folder"
 
 props:
-- name: "text"
-  type: "String"
-
-- name: "title"
-  type: "String"
-
 - name: "level"
   type: "String"
 
 - name: "link"
   type: "String"
   optional: true
+
+- name: "text"
+  type: "String"
+
+- name: "title"
+  type: "String"
 

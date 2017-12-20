@@ -1,15 +1,14 @@
 import (
   "log"
   "errors"
-  "os"
   "fmt"
   "strings"
-  "net"
 
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/extras"
   "github.com/stardustapp/core/inmem"
   "github.com/stardustapp/core/skylink"
+  "github.com/stardustapp/core/toolbox"
 
   "github.com/go-redis/redis"
 )
@@ -33,40 +32,25 @@ func (r *Root) OpenImpl(opts *MountOpts) *Client {
   })
 
 
-  // TODO: this should be made already
-  if r.Sessions == nil {
-    r.Sessions = inmem.NewFolder("sessions")
-  }
-  sessionId := extras.GenerateId()
-
   // Return absolute URI to the created session
-  name, err := os.Hostname()
-  if err != nil {
-    log.Println("Oops 1:", err)
-    return nil // "Err! no ip"
-  }
-  addrs, err := net.LookupHost(name)
-  if err != nil {
-    log.Println("Oops 2:", err)
-    return nil // "Err! no host"
-  }
-  if len(addrs) < 1 {
-    log.Println("Oops 2:", err)
-    return nil // "Err! no host ip"
-  }
-  selfIp := addrs[0]
-  uri := fmt.Sprintf("skylink+ws://%s:9234/pub/sessions/%s", selfIp, sessionId)
+  sessionId := extras.GenerateId()
+  sessionPath := fmt.Sprintf(":9234/pub/sessions/%s", sessionId)
+  sessionUri, _ := toolbox.SelfURI(sessionPath)
 
   client := &Client{
     svc:    svc,
     prefix: opts.Prefix,
-    URI:    uri,
+    URI:    sessionUri,
   }
   client.Root = client.getRoot()
   log.Printf("built client %+v", client)
 
+  if r.Sessions == nil {
+    // TODO: this should be made already
+    r.Sessions = inmem.NewObscuredFolder("sessions")
+  }
   if ok := r.Sessions.Put(sessionId, client); !ok {
-    log.Println("Session store rejected us :(", err)
+    log.Println("Session store rejected us :(")
     return nil
   }
   return client

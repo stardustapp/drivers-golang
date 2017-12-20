@@ -193,7 +193,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       NextProtos: []string{"irc"},
     })
 
-    // Make sure it's legit
+    // Do a little dance
     if err := tlsConn.Handshake(); err != nil {
       log.Println("Failed to perform TLS handshake:", endpoint, err)
       conn.State.Set("Failed: TLS error")
@@ -318,7 +318,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 
   // TODO: this should be made already
   if r.Sessions == nil {
-    r.Sessions = inmem.NewFolder("sessions")
+    r.Sessions = inmem.NewObscuredFolder("sessions")
   }
 
   // Store a session reference
@@ -329,23 +329,9 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   }
 
   // Return absolute URI to the created session
-  name, err := os.Hostname()
-  if err != nil {
-    log.Println("Oops 1:", err)
-    return "Err! no ip"
-  }
-  addrs, err := net.LookupHost(name)
-  if err != nil {
-    log.Println("Oops 2:", err)
-    return "Err! no host"
-  }
-  if len(addrs) < 1 {
-    log.Println("Oops 2:", err)
-    return "Err! no host ip"
-  }
-  selfIp := addrs[0]
-
-  return fmt.Sprintf("skylink+ws://%s:9234/pub/sessions/%s", selfIp, sessionId)
+  sessionPath := fmt.Sprintf(":9234/pub/sessions/%s", sessionId)
+  sessionUri, _ := toolbox.SelfURI(sessionPath)
+  return sessionUri
 }
 
 func identdRPC(line string) error {

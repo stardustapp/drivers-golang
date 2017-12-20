@@ -8,6 +8,9 @@ props:
 - name: "chart-url"
   type: "String"
 
+- name: "uri"
+  type: "String"
+
 native-props:
 - name: "ctx"
   type: "base.Context"

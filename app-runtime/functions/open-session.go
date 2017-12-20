@@ -1,9 +1,15 @@
-import "net/url"
-import "log"
-import "strings"
-import "github.com/stardustapp/core/base"
-import "github.com/stardustapp/core/inmem"
-import "github.com/stardustapp/core/skylink"
+import (
+  "net/url"
+  "log"
+  "fmt"
+  "strings"
+
+  "github.com/stardustapp/core/base"
+  "github.com/stardustapp/core/inmem"
+  "github.com/stardustapp/core/extras"
+  "github.com/stardustapp/core/skylink"
+  "github.com/stardustapp/core/toolbox"
+)
 
 var sessionCache map[string]*Session = make(map[string]*Session)
 
@@ -18,6 +24,19 @@ func (r *Root) OpenSessionImpl(chartUrl string) *Session {
     ChartURL: chartUrl,
   }
   sessionCache[chartUrl] = session
+
+  // Store a session reference
+  if r.Sessions == nil {
+    // TODO: this should be made already
+    r.Sessions = inmem.NewObscuredFolder("sessions")
+  }
+  sessionId := extras.GenerateId()
+  if ok := r.Sessions.Put(sessionId, session); !ok {
+    log.Println("WARN: Session store rejected us :(")
+    return nil
+  }
+  sessionPath := fmt.Sprintf(":9234/pub/sessions/%s", sessionId)
+  session.URI, _ = toolbox.SelfURI(sessionPath)
 
   // perform async so the open can complete eagerly
   go func() {

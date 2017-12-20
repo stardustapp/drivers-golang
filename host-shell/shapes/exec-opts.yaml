@@ -4,6 +4,17 @@ props:
 - name: "arguments"
   type: "Folder"
 
+- name: "enable-stdin"
+  type: "String"
+  optional: true
+
+- name: "enable-tty"
+  type: "String"
+  optional: true
+
 - name: "executable"
+  type: "String"
+
+- name: "output-buffering"
   type: "String"
 

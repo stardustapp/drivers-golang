@@ -8,6 +8,10 @@ props:
 - name: "fs-root"
   type: "Folder"
 
+- name: "processes"
+  type: "Folder"
+  target: "process"
+
 - name: "uri"
   type: "String"
 

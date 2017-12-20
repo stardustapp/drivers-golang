@@ -1,0 +1,12 @@
+type: "Folder"
+
+props:
+- name: "data"
+  type: "File"
+
+- name: "stream"
+  type: "String"
+
+- name: "timestamp"
+  type: "String"
+

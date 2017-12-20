@@ -5,12 +5,13 @@ import (
   "strings"
   "io/ioutil"
   "path/filepath"
-  "net"
 
   "github.com/stardustapp/core/base"
   "github.com/stardustapp/core/extras"
   "github.com/stardustapp/core/inmem"
   "github.com/stardustapp/core/toolbox"
+
+  //"github.com/erikdubbelboer/gspt"
 )
 
 // Presents a faithful representation of the underlying host filesystem
@@ -18,11 +19,8 @@ import (
 // Also allows arbitrary POSIX process execution
 
 func (r *Root) OpenImpl(opts *MountOpts) *Session {
-  // TODO: this should be made already
-  if r.Sessions == nil {
-    r.Sessions = inmem.NewObscuredFolder("sessions")
-  }
-  sessionId := extras.GenerateId()
+
+  //gspt.SetProcTitle("sky-anchor")
 
   // Return absolute URI to the created session
   if r.Sessions == nil {
@@ -41,7 +39,7 @@ func (r *Root) OpenImpl(opts *MountOpts) *Session {
   log.Printf("built session %+v", session)
 
   if ok := r.Sessions.Put(sessionId, session); !ok {
-    log.Println("Session store rejected us :(", err)
+    log.Println("Session store rejected us :(")
     return nil
   }
   return session

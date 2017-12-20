@@ -1,15 +1,33 @@
 type: "Folder"
 
 props:
+- name: "assemble-stdout"
+  type: "Function"
+  target: "assemble-stdout"
+
 - name: "exit-code"
   type: "String"
+  reactive: true
 
-- name: "output"
-  type: "String"
+- name: "opts"
+  type: "exec-opts"
 
 - name: "pid"
   type: "String"
 
 - name: "status"
   type: "String"
+  reactive: true
+
+- name: "stdin"
+  type: "Function"
+  target: "write-stdin"
+
+- name: "stdout"
+  type: "Folder"
+  target: "byte-packet"
+
+- name: "stdout-latest"
+  type: "String"
+  reactive: true
 

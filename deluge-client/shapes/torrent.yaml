@@ -1,0 +1,54 @@
+type: "Folder"
+
+props:
+- name: "eta"
+  type: "String"
+
+- name: "hash"
+  type: "String"
+
+- name: "is-finished"
+  type: "String"
+
+- name: "num-files"
+  type: "String"
+
+- name: "num-peers"
+  type: "String"
+
+- name: "num-seeds"
+  type: "String"
+
+- name: "paused"
+  type: "String"
+
+- name: "progress"
+  type: "String"
+
+- name: "queue"
+  type: "String"
+
+- name: "ratio"
+  type: "String"
+
+- name: "state"
+  type: "String"
+
+- name: "torrent-name"
+  type: "String"
+
+- name: "total-done"
+  type: "String"
+
+- name: "total-peers"
+  type: "String"
+
+- name: "total-seeds"
+  type: "String"
+
+- name: "total-size"
+  type: "String"
+
+- name: "total-uploaded"
+  type: "String"
+

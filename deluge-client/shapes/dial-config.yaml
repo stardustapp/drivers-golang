@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "password"
+  type: "String"
+
+- name: "url"
+  type: "String"
+

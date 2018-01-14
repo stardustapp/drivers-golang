@@ -1,0 +1,11 @@
+type: "Folder"
+
+props:
+- name: "get-torrents"
+  type: "Function"
+  target: "get-torrents"
+
+native-props:
+- name: "svc"
+  type: "*deluge.Deluge"
+

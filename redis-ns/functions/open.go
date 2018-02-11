@@ -67,14 +67,20 @@ func (c *Client) getRoot() base.Folder {
 }
 
 func (c *Client) newNode(name, typeStr string) string {
-  nid := extras.GenerateId()
-  if c.svc.SetNX(c.prefixFor(nid, "type"), typeStr, 0).Val() == false {
-    // TODO: try another time probably, don't just crash
-    log.Println("WARN: Redis node", nid, "already exists, couldn't make new", name, typeStr, "- retrying")
+  var nid string
+  var attempt int
+  for attempt < 5 {
+    attempt++
+
     nid = extras.GenerateId()
     if c.svc.SetNX(c.prefixFor(nid, "type"), typeStr, 0).Val() == false {
-      log.Fatalln("Redis node", nid, "already exists, can't make new", name, typeStr)
+      log.Println("WARN: Redis node", nid, "already exists, couldn't make new", name, typeStr, "- attempt", attempt)
+    } else {
+      break
     }
+  }
+  if attempt == 5 {
+    log.Fatalln("FATAL: No room in redis to make new", name, typeStr)
   }
 
   c.svc.Set(c.prefixFor(nid, "name"), name, 0)

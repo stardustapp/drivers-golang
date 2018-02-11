@@ -72,7 +72,7 @@ func (c *Client) newNode(name, typeStr string) string {
   for attempt < 5 {
     attempt++
 
-    nid = extras.GenerateId()
+    nid = extras.GenerateId()+"b"
     if c.svc.SetNX(c.prefixFor(nid, "type"), typeStr, 0).Val() == false {
       log.Println("WARN: Redis node", nid, "already exists, couldn't make new", name, typeStr, "- attempt", attempt)
     } else {

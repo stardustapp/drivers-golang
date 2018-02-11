@@ -28,6 +28,7 @@ func (c *Client) GetTorrentsImpl() base.Folder {
       Progress: strconv.FormatFloat(t.Progress, 'f', -1, 64),
       Queue: strconv.FormatFloat(t.Queue, 'f', -1, 64),
       Ratio: strconv.FormatFloat(t.Ratio, 'f', -1, 64),
+      SavePath: t.SavePath,
       State: t.State,
       TorrentName: t.Name,
       TotalDone: strconv.FormatFloat(t.TotalDone, 'f', -1, 64),
@@ -35,6 +36,7 @@ func (c *Client) GetTorrentsImpl() base.Folder {
       TotalSeeds: strconv.FormatFloat(t.TotalSeeds, 'f', -1, 64),
       TotalSize: strconv.FormatFloat(t.TotalSize, 'f', -1, 64),
       TotalUploaded: strconv.FormatFloat(t.TotalUploaded, 'f', -1, 64),
+      TrackerHost: t.TrackerHost,
     }
     folder.Put(strconv.Itoa(idx), ent)
     idx += 1

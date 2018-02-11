@@ -31,6 +31,9 @@ props:
 - name: "ratio"
   type: "String"
 
+- name: "save-path"
+  type: "String"
+
 - name: "state"
   type: "String"
 
@@ -50,5 +53,8 @@ props:
   type: "String"
 
 - name: "total-uploaded"
+  type: "String"
+
+- name: "tracker-host"
   type: "String"
 

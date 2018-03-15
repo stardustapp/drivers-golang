@@ -331,11 +331,17 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   // Return absolute URI to the created session
   sessionPath := fmt.Sprintf(":9234/pub/sessions/%s", sessionId)
   sessionUri, _ := toolbox.SelfURI(sessionPath)
+
+  // TODO
+  log.Println("Raw wire URI:", sessionUri)
+  sessionUri = strings.Replace(sessionUri, "172.31.28.120:", "modem2.devmode.cloud:2", 1)
+  log.Println("Given wire URI:", sessionUri)
+
   return sessionUri
 }
 
 func identdRPC(line string) error {
-  conn, err := net.Dial("tcp", "identd-rpc:11333")
+  conn, err := net.Dial("tcp", "identd-rpc:1133")
   if err != nil {
     log.Println("Failed to dial identd rpc:", err)
     return err

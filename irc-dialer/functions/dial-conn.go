@@ -173,7 +173,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   }
   var netConn net.Conn = rawConn
 
-  // Record username info in identd server
+  // Record username accountability info in identd server
   if config.Ident == "" {
     config.Ident = "dialer"
   }
@@ -181,8 +181,8 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     if remoteAddr, ok := netConn.RemoteAddr().(*net.TCPAddr); ok {
       identdRPC("add " + config.Ident + " " +
                 strconv.Itoa(localAddr.Port) + " " +
-                strconv.Itoa(remoteAddr.Port))
-      // TODO: not behind NAT? also send localAddr.IP.String()
+                strconv.Itoa(remoteAddr.Port) + " " +
+                localAddr.IP.String())
     }
   }
 

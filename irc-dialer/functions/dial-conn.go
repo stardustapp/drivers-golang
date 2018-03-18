@@ -166,9 +166,14 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   if config.Ident == "" {
     config.Ident = "dialer"
   }
-  identdRPC("add " + config.Ident + " " +
-            strings.Split(netConn.LocalAddr().String(),":")[1] + " " +
-            strings.Split(netConn.RemoteAddr().String(),":")[1])
+  if localAddr, ok := netConn.LocalAddr().(*net.TCPAddr); ok {
+    if remoteAddr, ok := netConn.RemoteAddr().(*net.TCPAddr); ok {
+      identdRPC("add " + config.Ident + " " +
+                strconv.Itoa(localAddr.Port) + " " +
+                strconv.Itoa(remoteAddr.Port))
+      // TODO: not behind NAT? also send localAddr.IP.String()
+    }
+  }
 
   // Perform TLS setup if desired
   if config.UseTLS == "yes" {
@@ -352,6 +357,8 @@ func identdRPC(line string) error {
     log.Println("Write to identd rpc failed:", err)
     return err
   }
+
+  log.Println("Issued identd RPC command:", line)
 
   conn.Close()
   return nil

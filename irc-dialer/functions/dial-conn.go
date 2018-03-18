@@ -1,6 +1,7 @@
 import (
   "crypto/tls"
   "log"
+  "errors"
   "fmt"
   "net"
   "time"
@@ -8,6 +9,7 @@ import (
   "os/signal"
   "strings"
   "strconv"
+  "sync"
   "syscall"
 
   "github.com/stardustapp/core/base"
@@ -21,6 +23,7 @@ import (
 // set up a global process-shutdown signal
 var shutdownChan chan struct{}
 var isShuttingDown bool
+var wgWires sync.WaitGroup
 func init() {
   shutdownChan = make(chan struct{})
   c := make(chan os.Signal, 2)
@@ -33,10 +36,18 @@ func init() {
     log.Println("WARN: Received Interrupt - quitting all sockets")
     close(shutdownChan)
 
-    // TODO: waitgroup lol
-    <-c
-    log.Println("FATAL: Received Interrupt AGAIN - suiciding")
-    os.Exit(1)
+    go func() {
+      <-c // let user interactively fast-bail
+      log.Println("FATAL: Received Interrupt AGAIN - suiciding")
+      os.Exit(1)
+    }()
+
+    log.Println("Waiting for no running wires...")
+    wgWires.Wait()
+    log.Println("Sleeping 5s, allowing logs to settle...")
+    time.Sleep(5 * time.Second)
+    log.Println("Done! :) 'Til next time")
+    os.Exit(0)
   }()
 }
 
@@ -220,24 +231,28 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
   conn.svc = irc.NewClient(netConn, conf)
 
   // Fire it up
+  wgWires.Add(1)
   go func() {
-    if err := conn.svc.Run(); err != nil {
-      log.Println("Failed to run client:", err)
-
-      // We hit this when the client stops running, so record that
-      addMsg(&Message{
-        Command: "LOG",
-        Params: buildArrayFolder("Connection closed: " + err.Error()),
-        Source: "dialer",
-        Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-      })
+    err := conn.svc.Run()
+    if err == nil {
+      err = errors.New("IRC client had no error")
     }
+    log.Println("IRC client failed while running:", err)
 
-    conn.State.Set("Closed")
+    // We hit this when the client stops running, so record that
+    addMsg(&Message{
+      Command: "LOG",
+      Params: buildArrayFolder("Connection closed: " + err.Error()),
+      Source: "dialer",
+      Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+    })
 
     // synchronize to prevent send-message from panicing
     conn.sendMutex.Lock()
     defer conn.sendMutex.Unlock()
+
+    wgWires.Done()
+    conn.State.Set("Closed")
     close(conn.out)
   }()
 
@@ -249,6 +264,10 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     // synchronize to prevent send-message from panicing
     conn.sendMutex.Lock()
     defer conn.sendMutex.Unlock()
+
+    if conn.State.Get() == "Closed" {
+      return // our IRC connection is already gone
+    }
 
     // attempt to peacefully disconnect
     conn.out <- &Message{

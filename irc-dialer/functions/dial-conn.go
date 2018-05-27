@@ -86,7 +86,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     HistoryHorizon: "0",
     HistoryLatest: toolbox.NewReactiveString("history-latest", "0"),
 
-    out: make(chan *Message),
+    out: make(chan *Message, 2),
   }
   conn.History.Put("0", firstMsg)
 
@@ -268,6 +268,7 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     if conn.State.Get() == "Closed" {
       return // our IRC connection is already gone
     }
+    conn.State.Set("Quitting")
 
     // attempt to peacefully disconnect
     conn.out <- &Message{
@@ -275,8 +276,6 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       Params: inmem.NewFolderOf("params", inmem.NewString(
         "1", "IRC modem is shutting down")),
     }
-
-    conn.State.Set("Quitting")
   }()
 
   // Start outbound pump

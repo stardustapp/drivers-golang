@@ -1,0 +1,9 @@
+type: "Folder"
+
+props:
+- name: "body"
+  type: "String"
+
+- name: "target"
+  type: "String"
+

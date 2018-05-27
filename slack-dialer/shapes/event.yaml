@@ -1,0 +1,12 @@
+type: "Folder"
+
+props:
+- name: "params"
+  type: "Folder"
+
+- name: "timestamp"
+  type: "String"
+
+- name: "type"
+  type: "String"
+

@@ -1,0 +1,28 @@
+type: "Folder"
+
+props:
+- name: "history"
+  type: "Folder"
+
+- name: "history-horizon"
+  type: "String"
+
+- name: "history-latest"
+  type: "String"
+  reactive: true
+
+- name: "send-message"
+  type: "Function"
+  target: "send-message"
+
+- name: "state"
+  type: "String"
+  reactive: true
+
+native-props:
+- name: "rtm"
+  type: "*slack.RTM"
+
+- name: "svc"
+  type: "*slack.Client"
+

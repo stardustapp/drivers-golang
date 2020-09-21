@@ -2,9 +2,9 @@ import (
   "log"
   "fmt"
 
-  "github.com/stardustapp/core/extras"
-  "github.com/stardustapp/core/inmem"
-  "github.com/stardustapp/core/toolbox"
+  "github.com/stardustapp/dustgo/lib/extras"
+  "github.com/stardustapp/dustgo/lib/inmem"
+  "github.com/stardustapp/dustgo/lib/toolbox"
 
   deluge "github.com/pyed/go-deluge"
 )

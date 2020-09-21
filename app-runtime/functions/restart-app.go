@@ -1,7 +1,7 @@
 import "log"
 import "strings"
 import "time"
-import "github.com/stardustapp/core/inmem"
+import "github.com/stardustapp/dustgo/lib/inmem"
 
 func (a *App) RestartAppImpl() string {
   // mark app as stopping - prevents new stuff from starting

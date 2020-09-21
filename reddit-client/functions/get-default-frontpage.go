@@ -1,5 +1,5 @@
 import "github.com/jzelinskie/geddit"
-import "github.com/stardustapp/core/inmem"
+import "github.com/stardustapp/dustgo/lib/inmem"
 import "strconv"
 import "time"
 import "log"

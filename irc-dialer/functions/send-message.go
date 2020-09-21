@@ -1,5 +1,5 @@
 import "strings"
-import "github.com/stardustapp/core/base"
+import "github.com/stardustapp/dustgo/lib/base"
 
 const BAD_CHARS = "\r\n\000"
 

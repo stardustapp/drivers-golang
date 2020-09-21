@@ -2,8 +2,8 @@ import (
   "log"
   "strconv"
 
-  "github.com/stardustapp/core/base"
-  "github.com/stardustapp/core/inmem"
+  "github.com/stardustapp/dustgo/lib/base"
+  "github.com/stardustapp/dustgo/lib/inmem"
 )
 
 func (c *Client) GetTorrentsImpl() base.Folder {

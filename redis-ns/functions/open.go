@@ -4,11 +4,11 @@ import (
   "fmt"
   "strings"
 
-  "github.com/stardustapp/core/base"
-  "github.com/stardustapp/core/extras"
-  "github.com/stardustapp/core/inmem"
-  "github.com/stardustapp/core/skylink"
-  "github.com/stardustapp/core/toolbox"
+  "github.com/stardustapp/dustgo/lib/base"
+  "github.com/stardustapp/dustgo/lib/extras"
+  "github.com/stardustapp/dustgo/lib/inmem"
+  "github.com/stardustapp/dustgo/lib/skylink"
+  "github.com/stardustapp/dustgo/lib/toolbox"
 
   "github.com/go-redis/redis"
 )

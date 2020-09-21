@@ -1,6 +1,6 @@
 import (
-  "github.com/stardustapp/core/base"
-  "github.com/stardustapp/core/inmem"
+  "github.com/stardustapp/dustgo/lib/base"
+  "github.com/stardustapp/dustgo/lib/inmem"
 )
 
 func (p *Process) AssembleStdoutImpl() base.File {

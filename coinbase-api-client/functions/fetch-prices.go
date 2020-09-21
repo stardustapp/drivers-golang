@@ -2,7 +2,7 @@ import "log"
 import "net/http"
 import "time"
 import "encoding/json"
-import "github.com/stardustapp/core/inmem"
+import "github.com/stardustapp/dustgo/lib/inmem"
 
 var client = &http.Client{Timeout: 5 * time.Second}
 

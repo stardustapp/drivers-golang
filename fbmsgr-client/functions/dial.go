@@ -1,8 +1,8 @@
 import (
   "os"
 
-  "github.com/stardustapp/core/extras"
-  "github.com/stardustapp/core/inmem"
+  "github.com/stardustapp/dustgo/lib/extras"
+  "github.com/stardustapp/dustgo/lib/inmem"
 
   "github.com/unixpickle/fbmsgr"
 )

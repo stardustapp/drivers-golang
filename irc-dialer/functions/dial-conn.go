@@ -12,10 +12,10 @@ import (
   "sync"
   "syscall"
 
-  "github.com/stardustapp/core/base"
-  "github.com/stardustapp/core/inmem"
-  "github.com/stardustapp/core/extras"
-  "github.com/stardustapp/core/toolbox"
+  "github.com/stardustapp/dustgo/lib/base"
+  "github.com/stardustapp/dustgo/lib/inmem"
+  "github.com/stardustapp/dustgo/lib/extras"
+  "github.com/stardustapp/dustgo/lib/toolbox"
 
   irc "gopkg.in/irc.v1"
 )

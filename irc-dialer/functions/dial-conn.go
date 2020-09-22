@@ -364,7 +364,12 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
 }
 
 func identdRPC(line string) error {
-	conn, err := net.Dial("tcp", "identd-rpc:1133")
+	rpcEndpoint := os.Getenv("IDENTD_RPC_ENDPOINT")
+	if rpcEndpoint == "" {
+		return nil
+	}
+
+	conn, err := net.Dial("tcp", rpcEndpoint)
 	if err != nil {
 		log.Println("Failed to dial identd rpc:", err)
 		return err

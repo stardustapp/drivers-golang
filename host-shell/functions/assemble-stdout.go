@@ -1,8 +1,10 @@
+package driver
+
 import (
-  "github.com/stardustapp/dustgo/lib/base"
-  "github.com/stardustapp/dustgo/lib/inmem"
+	"github.com/stardustapp/dustgo/lib/base"
+	"github.com/stardustapp/dustgo/lib/inmem"
 )
 
 func (p *Process) AssembleStdoutImpl() base.File {
-  return inmem.NewFile("stdout", []byte{})
+	return inmem.NewFile("stdout", []byte{})
 }

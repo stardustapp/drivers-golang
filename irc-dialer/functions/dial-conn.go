@@ -17,7 +17,7 @@ import (
   "github.com/stardustapp/dustgo/lib/extras"
   "github.com/stardustapp/dustgo/lib/toolbox"
 
-  irc "gopkg.in/irc.v1"
+  irc "gopkg.in/irc.v3"
 )
 
 // set up a global process-shutdown signal
@@ -119,14 +119,19 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
     Handler: irc.HandlerFunc(func(c *irc.Client, m *irc.Message) {
 
       // Clean up CTCP stuff so everyone doesn't have to parse it manually.
-      // TODO: the go-irc library does this but only for PRIVMSG
       // TODO: split the ctcp cmd from the ctcp args
-      if m.Command == "NOTICE" {
+      if m.Command == "PRIVMSG" || m.Command == "NOTICE" {
         lastArg := m.Trailing()
         lastIdx := len(lastArg) - 1
-        if lastIdx > 0 && lastArg[0] == '\x01' && lastArg[lastIdx] == '\x01' {
-          m.Command = "CTCP_ANSWER"
+        if lastIdx > 0 && lastArg[0] == '\x01' {
+          if lastArg[lastIdx] != '\x01' {
+            lastIdx++
+          }
           m.Params[len(m.Params)-1] = lastArg[1:lastIdx]
+          m.Command = "CTCP"
+          if m.Command == "NOTICE" {
+            m.Command = "CTCP_ANSWER"
+          }
         }
       }
 
@@ -195,17 +200,10 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
       Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
     })
 
-    // Extract hostname of endpoint
-    colonPos := strings.LastIndex(endpoint, ":")
-    if colonPos == -1 {
-      colonPos = len(endpoint)
-    }
-    hostname := endpoint[:colonPos]
-
     // Configure a TLS client
     log.Println("Starting TLS handshake with", endpoint)
     tlsConn := tls.Client(rawConn, &tls.Config{
-      ServerName: hostname,
+      ServerName: config.Hostname,
       NextProtos: []string{"irc"},
     })
 
@@ -320,10 +318,9 @@ func (r *Root) DialConnImpl(config *DialConfig) string {
         }
         params = []string{params[0], payload}
 
+        command = "PRIVMSG"
         if command == "CTCP_ANSWER" {
           command = "NOTICE"
-        } else {
-          command = "PRIVMSG"
         }
       }
 

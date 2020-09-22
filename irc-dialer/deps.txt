@@ -1,2 +1,2 @@
-golang irc "gopkg.in/irc.v1"
+golang irc "gopkg.in/irc.v3"
 golang sync "sync"
